@@ -15,11 +15,6 @@ class RomBuffer {
         this.data.push((buffer[i] << 8) | (buffer[i + 1] << 0))
       }
     }
-
-    foreach()
-    {
-      
-    }
   }
 
 // export RomBuffer
