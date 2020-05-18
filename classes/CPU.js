@@ -62,8 +62,9 @@ class CPU {
 
         console.log(opcode.toString(16))
 
-        //var instruction = this.decode(opcode);
-        //this.execute(instruction);
+        var instruction = this.decode(opcode);
+        
+        this.execute(instruction);
     }
 
     fetch()
@@ -79,7 +80,20 @@ class CPU {
     {
         // Need to figure out which instruction this is, and what are the arguments and
         // return it in some kind of javascripty object to pass to execute().
-    
+        if(opcode & 0x1000 == 0x1000)
+        {
+            var id = "JP"
+            var args = (opcode & 0x0fff)
+
+            console.log(id)
+            console.log(args.toString(16))
+
+            return {id, args}
+        }
+        else
+        {
+            throw new Error('cant decode opcode')
+        }
     }
     
     execute(instruction)
@@ -89,9 +103,12 @@ class CPU {
         // Big switch case of all instructions
         switch(id)
         {
-            case 'ADD_VX_VY':
+            case 'JP':
+                console.log("executing JUMP")
+                this.PC = args;
                 break;
             default:
+                throw new Error('cant execute instruction')
                 break;
         }
     }
