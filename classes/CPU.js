@@ -55,13 +55,30 @@ class CPU {
         this.PC = 0x200;
     }
 
+    step()
+    {
+        // Fetch, decode and execute this bad boy
+        var opcode = this.fetch();
+
+        console.log(opcode.toString(16))
+
+        //var instruction = this.decode(opcode);
+        //this.execute(instruction);
+    }
+
     fetch()
     {
-        return this.memory[this.PC];
+        // Memory is an array of Uint8 and an opcode is 16 bits, which means it occupies two
+        // indices in memory. To return the full 16 bit opcode, we left shift the first byte
+        // by a byte to make it the most significat 2 nibbles, then OR it with the next byte
+        // to pick up the least significant two nibbles
+        return (this.memory[this.PC] << 8 | this.memory[this.PC + 1]);
     }
     
     decode(opcode)
     {
+        // Need to figure out which instruction this is, and what are the arguments and
+        // return it in some kind of javascripty object to pass to execute().
     
     }
     
