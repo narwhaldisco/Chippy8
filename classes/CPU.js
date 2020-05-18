@@ -13,6 +13,21 @@ class CPU {
       this.PC = 0x200
     }
 
+    // Load buffer into memory
+    load(romBuffer) {
+        this.reset()
+
+        // this is just pseduocode...
+        /*romBuffer.forEach((opcode, i) => {
+            this.memory[i] = opcode
+        })*/
+    }
+
+    reset()
+    {
+        // clear memory / registers / other stuff?
+    }
+
     fetch()
     {
         return this.memory[this.PC];
