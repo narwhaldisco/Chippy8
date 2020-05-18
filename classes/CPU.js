@@ -17,14 +17,15 @@ class CPU {
     load(romBuffer) {
         this.reset()
 
-        romBuffer.forEach((opcode, i) => {
+        // this is just pseduocode...
+        /*romBuffer.forEach((opcode, i) => {
             this.memory[i] = opcode
-        })
+        })*/
     }
 
     reset()
     {
-        // clear mem / registers / other stuff?
+        // clear memory / registers / other stuff?
     }
 
     fetch()
