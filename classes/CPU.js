@@ -130,11 +130,14 @@ class CPU {
         }
         else if((opcode & 0xf000) == 0x7000)
         {
-            // TO DO 7xkk - ADD Vx, byte
             // Set Vx = Vx + kk
             // Adds the value kk to the value of register Vx, then stores the result in Vx
-            var id = "ADD_Vx_B"
-            var args = (opcode & 0x0fff)
+            var id = "LD_VX_B"
+            var Vx = (opcode & 0x0f00) >> 8;
+            var kk = (opcode & 0x00ff);
+
+            var args = {Vx, kk}
+
             return {id, args}
         }
         else
@@ -183,7 +186,17 @@ class CPU {
 
                 break;
             case 'ADD_Vx_B':
-                // TO DO 7xkk - ADD Vx, byte
+                //7xkk - ADD Vx, byte
+                var reg = args.Vx
+                var kk = args.kk
+
+                if(reg > 15)
+                {
+                    throw new Error('bad register: ' + reg)
+                }
+
+                this.registers[reg] += kk
+
                 this.PC = this.PC + 2
 
                 break;
