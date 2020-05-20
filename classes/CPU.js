@@ -99,6 +99,13 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xa000) == 0xa000)
+        {
+            var id = "LD_I_Addr"
+            var args = (opcode & 0x0fff)
+
+            return {id, args}
+        }
         else
         {
             throw new Error('cant decode opcode: ' + opcode.toString(16))
@@ -135,6 +142,13 @@ class CPU {
                 this.PC = this.PC + 2
 
                 //console.log("reg: " + reg + " byte: " + byte)
+
+                break;
+            case 'LD_I_Addr':
+
+                this.I = args
+                console.log("I value is : " + this.I.toString(16))
+                this.PC = this.PC + 2
 
                 break;
             default:
