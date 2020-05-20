@@ -22,16 +22,21 @@ cpu.load(rombuf);
 var msg = `Hello Chippy World ${cpu.PC}`;
 console.log(msg);
 
+cpu.step()
+cpu.step()
+cpu.step()
+cpu.step()
+cpu.step()
 
 // Main loop to drive the interpreter
-function cycle() {
+/*function cycle() {
 
     cpu.step()
 
     // this loops somehow, I guess it waits 3 milliseconds then calls
     // cycle again? isn't this recursive and going to create a huge callstacK??
-    //setTimeout(cycle, 3);
-}
+    setTimeout(cycle, 3);
+}*/
 
-cycle()
+//cycle()
 
