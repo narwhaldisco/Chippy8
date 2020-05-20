@@ -132,7 +132,7 @@ class CPU {
         {
             // Set Vx = Vx + kk
             // Adds the value kk to the value of register Vx, then stores the result in Vx
-            var id = "LD_VX_B"
+            var id = "ADD_VX_B"
             var Vx = (opcode & 0x0f00) >> 8;
             var kk = (opcode & 0x00ff);
 
