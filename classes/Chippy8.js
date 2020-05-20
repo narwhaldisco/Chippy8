@@ -28,6 +28,7 @@ cpu.step()
 cpu.step()
 cpu.step()
 cpu.step()
+cpu.step()
 
 // Main loop to drive the interpreter
 /*function cycle() {
