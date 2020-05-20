@@ -3,6 +3,7 @@ const fs = require('fs');
 const { CPU } = require('./CPU.js')
 const { RomBuffer } = require('./RomBuffer.js');
 
+// Andrew is the best
 
 var cpu = new CPU();
 
