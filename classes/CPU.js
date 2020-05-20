@@ -105,9 +105,9 @@ class CPU {
             // interpreter puts the value kk into register Vx
             var id = "LD_VX_B"
             var Vx = (opcode & 0x0f00) >> 8;
-            var byte = (opcode & 0x00ff);
+            var kk = (opcode & 0x00ff);
 
-            var args = {Vx, byte}
+            var args = {Vx, kk}
 
             return {id, args}
         }
@@ -158,7 +158,7 @@ class CPU {
             case 'LD_VX_B':
                 // 6xkk - LD Vx, byte
                 var reg = args.Vx
-                var byte = args.byte
+                var kk = args.kk
 
                 // Make sure register index is valid
                 if(reg > 15)
@@ -166,7 +166,7 @@ class CPU {
                     throw new Error('bad register: ' + reg)
                 }
 
-                this.registers[reg] = byte
+                this.registers[reg] = kk
 
                 this.PC = this.PC + 2
 
