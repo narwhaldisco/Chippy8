@@ -1,6 +1,16 @@
 
 // Chip8 CPU class
 // Defines the CPU itself and logic to execute programs
+
+/*      * 16 x 8-bit general purpose registers (V0 - VF**)
+        * 1 x 16-bit index register (I)
+        * 1 x 16-bit stack pointer (SP)
+        * 1 x 16-bit program counter (PC)
+        * 1 x 8-bit delay timer (DT)
+        * 1 x 8-bit sound timer (ST)
+        ** VF is a special register - it is used to store the overflow bit
+*/
+
 class CPU {
     constructor() {
       this.memory = new Uint8Array(4096);
@@ -80,30 +90,51 @@ class CPU {
 
         // Need to figure out which instruction this is, and what are the arguments and
         // return it in some kind of javascripty object to pass to execute().
-        if((opcode & 0x1000) == 0x1000)
+        if((opcode & 0xf000) == 0x1000)
         {
+            // 1nnn - Jp addr 
+            // Jump to location nnn.
             var id = "JP"
             var args = (opcode & 0x0fff)
 
             return {id, args}
         }
-        else if((opcode & 0x6000) == 0x6000)
-        {
+        else if((opcode & 0xf000) == 0x6000)
+        {  
+            // 6xkk - LD Vx, byte
+            // interpreter puts the value kk into register Vx
             var id = "LD_VX_B"
             var Vx = (opcode & 0x0f00) >> 8;
             var byte = (opcode & 0x00ff);
 
-            //console.log(Vx.toString())
-            
             var args = {Vx, byte}
 
             return {id, args}
         }
-        else if((opcode & 0xa000) == 0xa000)
+        else if((opcode & 0xf000) == 0xa000)
         {
+            // Annn - LD I, addr
+            // Set I = nnn.
+            // The value of reigster I is set to nnn
             var id = "LD_I_Addr"
             var args = (opcode & 0x0fff)
 
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0xd000)
+        {
+            // TO DO Dxyn - DRW Vx, Vy nibble
+            var id = "Vx_Vy_Nibble"
+            var args = (opcode & 0x0fff)
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0x7000)
+        {
+            // TO DO 7xkk - ADD Vx, byte
+            // Set Vx = Vx + kk
+            // Adds the value kk to the value of register Vx, then stores the result in Vx
+            var id = "ADD_Vx_B"
+            var args = (opcode & 0x0fff)
             return {id, args}
         }
         else
@@ -120,14 +151,12 @@ class CPU {
         switch(id)
         {
             case 'JP':
-
-                //console.log('JP PC before: ' + this.PC.toString(16))
+                // 1nnn - Jp addr 
                 this.PC = args;
-                //console.log('JP PC after: ' + this.PC.toString(16))
 
                 break;
             case 'LD_VX_B':
-            
+                // 6xkk - LD Vx, byte
                 var reg = args.Vx
                 var byte = args.byte
 
@@ -141,13 +170,20 @@ class CPU {
 
                 this.PC = this.PC + 2
 
-                //console.log("reg: " + reg + " byte: " + byte)
-
                 break;
             case 'LD_I_Addr':
-
+                // Annn - LD I, addr
                 this.I = args
-                console.log("I value is : " + this.I.toString(16))
+                this.PC = this.PC + 2
+
+                break;
+            case 'Vx_Vy_Nibble':
+                // TO DO Dxyn - DRW Vx, Vy nibble
+                this.PC = this.PC + 2
+
+                break;
+            case 'ADD_Vx_B':
+                // TO DO 7xkk - ADD Vx, byte
                 this.PC = this.PC + 2
 
                 break;
