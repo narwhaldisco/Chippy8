@@ -60,8 +60,6 @@ class CPU {
         // Fetch, decode and execute this bad boy
         var opcode = this.fetch();
 
-        console.log(opcode.toString(16))
-
         var instruction = this.decode(opcode);
         
         this.execute(instruction);
@@ -78,21 +76,32 @@ class CPU {
     
     decode(opcode)
     {
+        console.log("decoding: " + opcode.toString(16))
+
         // Need to figure out which instruction this is, and what are the arguments and
         // return it in some kind of javascripty object to pass to execute().
-        if(opcode & 0x1000 == 0x1000)
+        if((opcode & 0x1000) == 0x1000)
         {
             var id = "JP"
             var args = (opcode & 0x0fff)
 
-            console.log(id)
-            console.log(args.toString(16))
+            return {id, args}
+        }
+        else if((opcode & 0x6000) == 0x6000)
+        {
+            var id = "LD_VX_B"
+            var Vx = (opcode & 0x0f00) >> 8;
+            var byte = (opcode & 0x00ff);
+
+            //console.log(Vx.toString())
+            
+            var args = {Vx, byte}
 
             return {id, args}
         }
         else
         {
-            throw new Error('cant decode opcode')
+            throw new Error('cant decode opcode: ' + opcode.toString(16))
         }
     }
     
@@ -104,11 +113,32 @@ class CPU {
         switch(id)
         {
             case 'JP':
-                console.log("executing JUMP")
+
+                //console.log('JP PC before: ' + this.PC.toString(16))
                 this.PC = args;
+                //console.log('JP PC after: ' + this.PC.toString(16))
+
+                break;
+            case 'LD_VX_B':
+            
+                var reg = args.Vx
+                var byte = args.byte
+
+                // Make sure register index is valid
+                if(reg > 15)
+                {
+                    throw new Error('bad register: ' + reg)
+                }
+
+                this.registers[reg] = byte
+
+                this.PC = this.PC + 2
+
+                //console.log("reg: " + reg + " byte: " + byte)
+
                 break;
             default:
-                throw new Error('cant execute instruction')
+                throw new Error('cant execute instruction: ' + id)
                 break;
         }
     }
