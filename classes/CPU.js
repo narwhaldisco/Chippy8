@@ -140,6 +140,28 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf0ff) == 0xf01e)
+        {
+            // Fx1E - ADD I, Vx
+            // Set I = I + Vx
+            var id = "ADD_I_Vx"
+            var args = opcode & 0x0f00 >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0x3000)
+        {
+            // 3xkk - SE Vx, byte
+            // Skip next instruction if Vx = kk.
+            var id = "SE_Vx_B"
+
+            var Vx = opcode & 0x0f00 >> 8
+            var kk = opcode & 0x00ff
+
+            var args = {Vx, kk}
+
+            return {id, args}
+        }
         else
         {
             throw new Error('cant decode opcode: ' + opcode.toString(16))
@@ -163,21 +185,18 @@ class CPU {
                 var reg = args.Vx
                 var kk = args.kk
 
-                // Make sure register index is valid
-                if(reg > 15)
-                {
-                    throw new Error('bad register: ' + reg)
-                }
+                this.checkRegister(reg)
 
                 this.registers[reg] = kk
 
-                this.PC = this.PC + 2
+                this.advancePC()
 
                 break;
             case 'LD_I_Addr':
                 // Annn - LD I, addr
                 this.I = args
-                this.PC = this.PC + 2
+
+                this.advancePC()
 
                 break;
             case 'Vx_Vy_Nibble':
@@ -190,20 +209,66 @@ class CPU {
                 var reg = args.Vx
                 var kk = args.kk
 
-                if(reg > 15)
-                {
-                    throw new Error('bad register: ' + reg)
-                }
+                this.checkRegister(reg)
 
                 this.registers[reg] += kk
 
-                this.PC = this.PC + 2
+                this.advancePC()
+
+                break;
+            case 'ADD_I_Vx':
+                // Fx1E - ADD I, Vx
+                // Set I = I + Vx
+                var reg = args
+
+                this.checkRegister(reg)
+
+                this.I += this.registers[reg];
+
+                this.advancePC()
+
+                break;
+            case 'SE_Vx_B':
+                // 3xkk - SE Vx, byte
+                // Skip next instruction if Vx = kk.
+
+                var reg = args.Vx
+                var kk  = args.kk
+
+                this.checkRegister(reg)
+
+                // advance two instructions if the register matches the byte
+                if(this.registers[reg] == kk)
+                {
+                    this.PC = this.PC + 4
+                }
+                // else just go to next instruction
+                else
+                {
+                    this.advancePC()
+                }
 
                 break;
             default:
                 throw new Error('cant execute instruction: ' + id)
                 break;
         }
+    }
+
+    // advance program counter 1 instruction
+    advancePC()
+    {
+        this.PC = this.PC + 2
+    }
+
+    // Make sure this is a valid register
+    checkRegister(reg)
+    {
+        // Only 16 registers, throw an error if we try and access one beyond
+        if(reg > 15)
+        {
+            throw new Error('bad register: ' + reg)
+        }   
     }
 
 } // end CPU
