@@ -24,6 +24,11 @@ cpu.load(rombuf);
 var msg = `Hello Chippy World 0x` + cpu.PC.toString(16);
 console.log(msg);
 
+/*for(var i = 0; i < 29; i++)
+{
+    cpu.step()
+}*/
+
 // Main loop to drive the interpreter
 function cycle() {
 
