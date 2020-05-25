@@ -22,6 +22,7 @@ class CPU {
       this.I = 0;
       this.SP = -1;
       this.PC = 0x200;
+      this.frameBuffer = [];
     }
 
     // Load buffer into memory
@@ -56,6 +57,52 @@ class CPU {
             // high 8 bits. (i.e., 0x1234 would be 0x34)
             this.memory[memoryStart + 2*i + 1] = romData[i] & 0x00ff
         }
+
+        // init frame buffer
+        this.frameBuffer = []
+
+        for (let i = 0; i < 32; i++) 
+        {
+            this.frameBuffer.push([])
+
+            for (let j = 0; j < 64; j++) 
+            {
+                this.frameBuffer[i].push(0)
+            }
+        }
+    }
+
+    // manually load some code for debug purposes
+    debug_load()
+    {
+        this.reset()
+
+        // 0-80 in memory is reserved for font set
+        for (let i = 0; i < FONT_SET.length; i++) 
+        {
+            this.memory[i] = FONT_SET[i]
+        }
+
+        // TEST CODE
+        this.memory[0x200] = 0x60;
+        this.memory[0x201] = 0x09; // LD_VX_B
+        this.memory[0x202] = 0xf0; 
+        this.memory[0x203] = 0x29; // LD_I_FONT
+        this.memory[0x204] = 0xd0; 
+        this.memory[0x205] = 0x15; // DRW_Vx_Vy_Nibble
+
+        // init frame buffer
+        this.frameBuffer = []
+
+        for (let i = 0; i < 32; i++) 
+        {
+            this.frameBuffer.push([])
+
+            for (let j = 0; j < 64; j++) 
+            {
+                this.frameBuffer[i].push(0)
+            }
+        }
     }
 
     reset()
@@ -70,6 +117,7 @@ class CPU {
         this.I = 0;
         this.SP = -1;
         this.PC = 0x200;
+        this.frameBuffer = []
     }
 
     step()
@@ -82,6 +130,8 @@ class CPU {
         console.log("decoded " + opcode.toString(16) + " to " + instruction.id)
         
         this.execute(instruction);
+
+        //this.renderDisplay()
     }
 
     fetch()
@@ -134,7 +184,12 @@ class CPU {
         {
             // TO DO Dxyn - DRW Vx, Vy nibble
             var id = "DRW_Vx_Vy_Nibble"
-            var args = (opcode & 0x0fff)
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+            var n  = (opcode & 0x000f)
+
+            var args = {Vx, Vy, n}
+
             return {id, args}
         }
         else if((opcode & 0xf000) == 0x7000)
@@ -234,6 +289,8 @@ class CPU {
 
                 this.registers[reg] = kk
 
+                console.log('reg: ' + reg + ' kk: ' + kk)
+
                 this.advancePC()
 
                 break;
@@ -246,6 +303,48 @@ class CPU {
                 break;
             case 'DRW_Vx_Vy_Nibble':
                 // TO DO Dxyn - DRW Vx, Vy nibble
+
+                // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+                // The interpreter reads n bytes from memory, starting at the address stored in I. 
+                // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. 
+                // If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of 
+                // it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
+
+                // let's do collision after
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                // n denotes how tall the sprite is really
+                // sprite is always 8 bits wide
+                var n  = args.n
+
+                var startx = this.registers[Vx];
+                var starty = this.registers[Vy];
+
+                //console.log('V' + Vx.toString(16) + ': ' + startx + ' V' + Vy.toString(16) + ': ' + starty)
+
+                // TODO: COLLISION!!!!
+
+                // for each row
+                for(var i = 0; i < n; i++)
+                {
+                    //console.log('I: ' + this.I)
+                    //console.log(this.memory[this.I+i].toString(2))
+
+                    // for each col in this row
+                    // go bit by bit and set the framebuffer
+                    for(var j = 0; j < 8; j++)
+                    {
+                        this.frameBuffer[starty + i][startx + j] ^= ((this.memory[this.I+i] << j) & 0x80)
+                    }
+                }
+
+                this.renderDisplay()
+
                 this.PC = this.PC + 2
 
                 break;
@@ -354,7 +453,7 @@ class CPU {
                 var reg = args;
                 this.checkRegister(reg)
 
-                this.value = this.registers[reg]
+                var value = this.registers[reg]
 
                 if(value*5 > 0x80)
                 {
@@ -362,7 +461,7 @@ class CPU {
                 }
 
                 // the hex sprites are 5 lines tall, so mult by 5
-                this.I = this.memory[value*5]
+                this.I = value*5
 
                 this.advancePC()
 
@@ -387,6 +486,32 @@ class CPU {
         {
             throw new Error('bad register: ' + reg)
         }   
+    }
+
+    // Mock display only
+    renderDisplay() {
+        let grid = ''
+
+        for(var row = 0; row < 32; row++)
+        {
+            for(var col = 0; col < 64; col++)
+            {
+                if(this.frameBuffer[row][col] == 0)
+                {
+                    grid += ' '
+                }
+                else
+                {
+                    grid += '█'
+                }
+
+                // below will use 0s and 1s
+                //grid += this.frameBuffer[row][col].toString(2)
+            }
+            grid += '\n'
+        }
+
+        console.log(grid)
     }
 
 } // end CPU

@@ -14,13 +14,14 @@ if (!rom) throw new Error('File not found')
 const rombuf = new RomBuffer(rom);
 
 // Dumps contents of the rombuf for debug purposes
-var debug = rombuf.dump();
-console.log(debug);
+//var debug = rombuf.dump();
+//console.log(debug);
 
 // Load the CPU memory with the rombuffer
 cpu.load(rombuf);
+//cpu.debug_load();
 
-var msg = `Hello Chippy World ${cpu.PC}`;
+var msg = `Hello Chippy World 0x` + cpu.PC.toString(16);
 console.log(msg);
 
 // Main loop to drive the interpreter
