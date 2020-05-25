@@ -1,3 +1,4 @@
+const FONT_SET = require('../data/font')
 
 // Chip8 CPU class
 // Defines the CPU itself and logic to execute programs
@@ -28,6 +29,12 @@ class CPU {
         this.reset()
 
         // TODO: load fontset into memory, and anything else that is reserved.
+
+        // 0-80 in memory is reserved for font set
+        for (let i = 0; i < FONT_SET.length; i++) 
+        {
+            this.memory[i] = FONT_SET[i]
+        }
 
         // Get ROM data from ROM buffer
         const romData = romBuffer.data;
@@ -71,6 +78,8 @@ class CPU {
         var opcode = this.fetch();
 
         var instruction = this.decode(opcode);
+
+        console.log("decoded " + opcode.toString(16) + " to " + instruction.id)
         
         this.execute(instruction);
     }
@@ -86,7 +95,7 @@ class CPU {
     
     decode(opcode)
     {
-        console.log("decoding: " + opcode.toString(16))
+        //console.log("decoding: " + opcode.toString(16))
 
         // Need to figure out which instruction this is, and what are the arguments and
         // return it in some kind of javascripty object to pass to execute().
@@ -124,7 +133,7 @@ class CPU {
         else if((opcode & 0xf000) == 0xd000)
         {
             // TO DO Dxyn - DRW Vx, Vy nibble
-            var id = "Vx_Vy_Nibble"
+            var id = "DRW_Vx_Vy_Nibble"
             var args = (opcode & 0x0fff)
             return {id, args}
         }
@@ -159,6 +168,42 @@ class CPU {
             var kk = opcode & 0x00ff
 
             var args = {Vx, kk}
+
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0x2000)
+        {
+            // 2nnn - CALL
+            // Push PC onto stack, jump to nnn
+
+            var id = "CALL"
+            var args = opcode & 0x0fff;
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf033)
+        {
+            // fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
+
+            var id = "BCD_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf065)
+        {
+            // fx64 - load V0 through Vx with memory starting at I
+
+            var id = 'LD_V0-Vx_MEM(I)'
+            var args = (opcode & 0x0f00) >> 8
+            
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf029)
+        {
+            // fx29 - Loads I with the location of hex digit x from the FONT_SET thing
+            var id = "LD_I_FONT"
+            var args = (opcode & 0x0f00) >> 8
 
             return {id, args}
         }
@@ -199,7 +244,7 @@ class CPU {
                 this.advancePC()
 
                 break;
-            case 'Vx_Vy_Nibble':
+            case 'DRW_Vx_Vy_Nibble':
                 // TO DO Dxyn - DRW Vx, Vy nibble
                 this.PC = this.PC + 2
 
@@ -247,6 +292,79 @@ class CPU {
                 {
                     this.advancePC()
                 }
+
+                break;
+            case 'CALL':
+                // 2nnn - CALL
+                // push PC onto stack, then jump to nnn
+
+                // This and return is the only way to interact with the stack lol
+                this.SP = this.SP + 1
+                this.stack[this.SP] = this.PC
+
+                this.PC = args;
+
+                break;
+            case 'BCD_Vx':
+                // Store BCD representation of Vx in memory locations I, I+1, and I+2.
+                // The interpreter takes the decimal value of Vx, and places the hundreds 
+                // digit in memory at location in I, the tens digit at location I+1, and 
+                // the ones digit at location I+2.
+
+                var value = this.registers[args]
+
+                //console.log("reg is: " + args + " value there is: " + value)
+
+                // POSSIBLE BUG: I don't think the Math.floor solution works for negative numbers.
+                // But in that situation, what even is the BCD of a negative number???
+                var ones = value % 10;
+                value = Math.floor(value/10);
+                var tens = value % 10;
+                value = Math.floor(value/10);
+                var hundreds = value % 10;
+            
+                //console.log("ones: " + ones + " tens: " + tens + " hundreds: " + hundreds)
+
+                this.memory[this.I] = hundreds;
+                this.memory[this.I+1] = tens;
+                this.memory[this.I+2] = ones;
+
+                this.advancePC()
+
+                break;
+            case 'LD_V0-Vx_MEM(I)':
+                // Read registers V0 through Vx from memory starting at location I.
+                // The interpreter reads values from memory starting at location I into registers V0 through Vx.
+
+                var endReg = args;
+
+                this.checkRegister(endReg);
+
+                for(var i = 0; i <= endReg; i++)
+                {
+                    this.registers[i] = this.memory[this.I + i]
+                }
+
+                this.advancePC()
+
+                break;
+            case 'LD_I_FONT':
+                // Set I = location of sprite for digit Vx.
+                // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
+                var reg = args;
+                this.checkRegister(reg)
+
+                this.value = this.registers[reg]
+
+                if(value*5 > 0x80)
+                {
+                    throw new error ('bad hex character requested: ' + value*5)
+                }
+
+                // the hex sprites are 5 lines tall, so mult by 5
+                this.I = this.memory[value*5]
+
+                this.advancePC()
 
                 break;
             default:
