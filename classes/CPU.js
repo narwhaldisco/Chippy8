@@ -289,6 +289,8 @@ class CPU {
 
                 this.registers[reg] = kk
 
+                console.log('reg: ' + reg + ' kk: ' + kk)
+
                 this.advancePC()
 
                 break;
@@ -312,9 +314,20 @@ class CPU {
 
                 var Vx = args.Vx
                 var Vy = args.Vy
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
                 // n denotes how tall the sprite is really
                 // sprite is always 8 bits wide
                 var n  = args.n
+
+                var startx = this.registers[Vx];
+                var starty = this.registers[Vy];
+
+                //console.log('V' + Vx.toString(16) + ': ' + startx + ' V' + Vy.toString(16) + ': ' + starty)
+
+                // TODO: COLLISION!!!!
 
                 // for each row
                 for(var i = 0; i < n; i++)
@@ -326,7 +339,7 @@ class CPU {
                     // go bit by bit and set the framebuffer
                     for(var j = 0; j < 8; j++)
                     {
-                        this.frameBuffer[Vx+i][Vy+j] ^= ((this.memory[this.I+i] << j) & 0x80)
+                        this.frameBuffer[starty + i][startx + j] ^= ((this.memory[this.I+i] << j) & 0x80)
                     }
                 }
 
