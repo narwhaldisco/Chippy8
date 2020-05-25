@@ -182,7 +182,7 @@ class CPU {
         }
         else if((opcode & 0xf000) == 0xd000)
         {
-            // TO DO Dxyn - DRW Vx, Vy nibble
+            // Dxyn - DRW Vx, Vy nibble
             var id = "DRW_Vx_Vy_Nibble"
             var Vx = (opcode & 0x0f00) >> 8
             var Vy = (opcode & 0x00f0) >> 4
@@ -209,7 +209,7 @@ class CPU {
             // Fx1E - ADD I, Vx
             // Set I = I + Vx
             var id = "ADD_I_Vx"
-            var args = opcode & 0x0f00 >> 8
+            var args = (opcode & 0x0f00) >> 8
 
             return {id, args}
         }
@@ -219,7 +219,7 @@ class CPU {
             // Skip next instruction if Vx = kk.
             var id = "SE_Vx_B"
 
-            var Vx = opcode & 0x0f00 >> 8
+            var Vx = (opcode & 0x0f00) >> 8
             var kk = opcode & 0x00ff
 
             var args = {Vx, kk}
@@ -289,7 +289,7 @@ class CPU {
 
                 this.registers[reg] = kk
 
-                console.log('reg: ' + reg + ' kk: ' + kk)
+                //console.log('reg: ' + reg + ' kk: ' + kk)
 
                 this.advancePC()
 
@@ -339,7 +339,12 @@ class CPU {
                     // go bit by bit and set the framebuffer
                     for(var j = 0; j < 8; j++)
                     {
-                        this.frameBuffer[starty + i][startx + j] ^= ((this.memory[this.I+i] << j) & 0x80)
+                        var col = ((starty+i) % 32)
+                        var row = ((startx+j) % 64)
+
+                        //console.log('col: ' + col + ' row: ' + row)
+
+                        this.frameBuffer[col][row] ^= ((this.memory[this.I+i] << j) & 0x80)
                     }
                 }
 
@@ -368,6 +373,8 @@ class CPU {
                 this.checkRegister(reg)
 
                 this.I += this.registers[reg];
+
+                console.log(this.I)
 
                 this.advancePC()
 
