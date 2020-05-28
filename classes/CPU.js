@@ -143,7 +143,7 @@ class CPU {
 
         var instruction = this.decode(opcode);
 
-        //console.log("decoded " + opcode.toString(16) + " to " + instruction.id)
+        console.log("decoded " + opcode.toString(16) + " to " + instruction.id)
         
         this.execute(instruction);
 
