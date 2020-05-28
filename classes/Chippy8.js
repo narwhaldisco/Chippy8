@@ -24,13 +24,30 @@ cpu.load(rombuf);
 var msg = `Hello Chippy World 0x` + cpu.PC.toString(16);
 console.log(msg);
 
-/*for(var i = 0; i < 29; i++)
+let timer = 0;
+
+/*for(var i = 0; i < 504; i++)
 {
+    // probably better to make the timer tick a function of the CPU speed
+    timer++
+    if(timer == 5)
+    {
+        cpu.tick()
+        timer = 0;
+    }
     cpu.step()
 }*/
 
 // Main loop to drive the interpreter
 function cycle() {
+
+    // probably better to make the timer tick a function of the CPU speed
+    timer++
+    if(timer == 5)
+    {
+        cpu.tick()
+        timer = 0;
+    }
 
     cpu.step()
 
