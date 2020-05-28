@@ -120,6 +120,22 @@ class CPU {
         this.frameBuffer = []
     }
 
+    tick()
+    {
+        //console.log("I have ticked DT: " + this.DT)
+
+        // Drecrement the timers
+        if(this.DT > 0)
+        {
+            this.DT = this.DT - 1;
+        }
+
+        if(this.ST > 0)
+        {
+            this.ST = this.ST -1;
+        }
+    }
+
     step()
     {
         // Fetch, decode and execute this bad boy
@@ -259,6 +275,30 @@ class CPU {
             // fx29 - Loads I with the location of hex digit x from the FONT_SET thing
             var id = "LD_I_FONT"
             var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xffff) == 0x00ee)
+        {
+            // 00ee - Return
+            var id = "RETURN"
+            var args = ""
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf015)
+        {
+            // fx15 - Load DT with Vx
+            var id = "LD_DT_Vx"
+            var args = (opcode & 0x0f00)
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf007)
+        {
+            // fx07 - Load Vx with DT
+            var id = "LD_Vx_DT"
+            var args = (opcode & 0x0f00)
 
             return {id, args}
         }
@@ -469,6 +509,43 @@ class CPU {
 
                 // the hex sprites are 5 lines tall, so mult by 5
                 this.I = value*5
+
+                this.advancePC()
+
+                break;
+            case 'RETURN':
+                // Return from a subroutine.
+                // The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
+
+                this.PC = this.stack[this.SP];
+
+                this.SP = this.SP - 1;
+
+                this.advancePC()
+
+                break;
+            case 'LD_DT_Vx':
+                // Set delay timer = Vx.
+                // DT is set equal to the value of Vx.
+
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                this.DT = this.registers[reg]
+
+                this.advancePC()
+
+                break;
+            case 'LD_Vx_DT':
+                // Set Vx = delay timer value.
+                // The value of DT is placed into Vx.
+
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                this.registers[reg] = this.DT
 
                 this.advancePC()
 
