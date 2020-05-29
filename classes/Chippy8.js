@@ -26,7 +26,7 @@ console.log(msg);
 
 let timer = 0;
 
-/*for(var i = 0; i < 504; i++)
+/*for(var i = 0; i < 520; i++)
 {
     // probably better to make the timer tick a function of the CPU speed
     timer++

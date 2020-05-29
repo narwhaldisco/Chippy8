@@ -23,6 +23,9 @@ class CPU {
       this.SP = -1;
       this.PC = 0x200;
       this.frameBuffer = [];
+
+      // debug stuff
+      this.instNum = 0;
     }
 
     // Load buffer into memory
@@ -118,6 +121,9 @@ class CPU {
         this.SP = -1;
         this.PC = 0x200;
         this.frameBuffer = []
+
+        // debug stuff
+        this.instNum = 0;
     }
 
     tick()
@@ -143,11 +149,16 @@ class CPU {
 
         var instruction = this.decode(opcode);
 
-        console.log("decoded " + opcode.toString(16) + " to " + instruction.id)
+        if(this.instNum > 500)
+        {
+            console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + instruction.id)
+        }
         
         this.execute(instruction);
 
         //this.renderDisplay()
+
+        this.instNum++
     }
 
     fetch()
@@ -242,6 +253,20 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf000) == 0x4000)
+        {
+            // 4xkk - SNE Vx, byte
+            // Skip next instruction if Vx != kk
+
+            var id = "SNE_Vx_B"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var kk = opcode & 0x00ff
+
+            var args = {Vx, kk}
+
+            return {id, args}
+        }
         else if((opcode & 0xf000) == 0x2000)
         {
             // 2nnn - CALL
@@ -299,6 +324,52 @@ class CPU {
             // fx07 - Load Vx with DT
             var id = "LD_Vx_DT"
             var args = (opcode & 0x0f00)
+
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0xc000)
+        {
+            // cxkk - Load Vx with rand AND kk
+            var id = "LD_Vx_RAND_AND_B"
+            
+            var Vx = (opcode & 0x0f00) >> 8
+            var kk = opcode & 0x00ff
+
+            var args = {Vx, kk}
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xe0a1)
+        {
+            // exa1 - Skip next instruction if key with the value of Vx is NOT pressed
+
+            var id = "SKNP_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8002)
+        {
+            // 8xy2 - Set Vx = Vx AND Vy.
+
+            var id = "Vx_AND_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x800E)
+        {
+            // 8xyE - Set Vx = Vx SHL 1.
+            // Why does this one seem to have a bunch of unused operands???
+            // Apparently there is confusion in the community lol... most implementations and code just treat
+            // this opcode as I have it implemented here.
+
+            var id = "SHL_Vx"
+            var args = (opcode & 0x0f00) >> 8;
 
             return {id, args}
         }
@@ -440,6 +511,28 @@ class CPU {
                 }
 
                 break;
+
+            case 'SNE_Vx_B':
+                // 4xkk - SNE Vx, byte
+                // Skip next instruction if Vx != kk.
+
+                var reg = args.Vx
+                var kk  = args.kk
+
+                this.checkRegister(reg)
+
+                // advance two instructions if the register does not match the byte
+                if(this.registers[reg] != kk)
+                {
+                    this.PC = this.PC + 4
+                }
+                // else just go to next instruction
+                else
+                {
+                    this.advancePC()
+                }
+
+                break;
             case 'CALL':
                 // 2nnn - CALL
                 // push PC onto stack, then jump to nnn
@@ -546,6 +639,80 @@ class CPU {
                 this.checkRegister(reg)
 
                 this.registers[reg] = this.DT
+
+                this.advancePC()
+
+                break;
+            case 'LD_Vx_RAND_AND_B':
+                // Set Vx = random byte AND kk.
+                // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. 
+                // The results are stored in Vx.
+
+                var reg = args.Vx;
+                var kk = args.kk;
+
+                this.checkRegister(reg)
+
+                var rand = Math.floor((Math.random() * 255));
+
+                var val = (rand & kk)
+
+                //console.log("rand: " + rand + " val: " + val)
+
+                this.registers[reg] = val
+
+                this.advancePC()
+
+                break;
+            case 'SKNP_Vx':
+
+                //TODO!!!! actually implement key presses
+
+                // Skip next instruction if key with the value of Vx is NOT pressed.
+                // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                // if key is NOT pressed...
+                if(true)
+                {
+                    this.PC = this.PC + 4
+                }
+                else
+                {
+                    this.advancePC()
+                }
+
+                break;
+            case 'Vx_AND_Vy':
+                // Set Vx = Vx AND Vy.
+                // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+                
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                this.registers[Vx] = (this.registers[Vx] & this.registers[Vy])
+
+                this.advancePC()
+
+                break;
+            case 'SHL_Vx':
+                // Set Vx = Vx SHL 1.
+                // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                // Put most significant bit into Vf
+                this.registers[0xf] = (this.registers[reg] >> 7)
+
+                // Mulitply Vx by 2
+                this.registers[reg] <<= 1;
 
                 this.advancePC()
 
