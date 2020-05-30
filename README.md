@@ -11,4 +11,8 @@ and
 
 http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#8xy2
 
-for now, install node.js and run node .\Chippy8.js\ from the classes dir
+to run:
+
+clone
+npm install
+node classes/Chippy8.js
