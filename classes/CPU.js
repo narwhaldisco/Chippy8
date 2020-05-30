@@ -1,4 +1,6 @@
 const FONT_SET = require('../data/font')
+const blessed = require('blessed')
+
 
 // Chip8 CPU class
 // Defines the CPU itself and logic to execute programs
@@ -14,18 +16,29 @@ const FONT_SET = require('../data/font')
 
 class CPU {
     constructor() {
-      this.memory = new Uint8Array(4096);
-      this.registers = new Uint8Array(16);
-      this.stack = new Uint16Array(16);
-      this.ST = 0;
-      this.DT = 0;
-      this.I = 0;
-      this.SP = -1;
-      this.PC = 0x200;
-      this.frameBuffer = [];
+        this.memory = new Uint8Array(4096);
+        this.registers = new Uint8Array(16);
+        this.stack = new Uint16Array(16);
+        this.ST = 0;
+        this.DT = 0;
+        this.I = 0;
+        this.SP = -1;
+        this.PC = 0x200;
+        this.frameBuffer = [];
 
-      // debug stuff
-      this.instNum = 0;
+        // blessed stuff
+        this.blessed = blessed
+        this.screen = blessed.screen({ smartCSR: true })
+        this.screen.title = 'Chippy8.js'
+        this.color = blessed.helpers.attrToBinary({ fg: '#33ff66' })
+
+        // Exit game
+        this.screen.key(['escape', 'C-c'], () => {
+            process.exit(0)
+        })
+
+        // debug stuff
+        this.instNum = 0;
     }
 
     // Load buffer into memory
@@ -498,16 +511,17 @@ class CPU {
                         var col = ((starty+i) % 32)
                         var row = ((startx+j) % 64)
 
+                        var newBit = ((this.memory[this.I+i] << j) & 0x80)
+
                         //console.log('col: ' + col + ' row: ' + row)
 
                         // If we are about to erase a pixel, remember so we can set Vf
-                        if(this.frameBuffer[col][row] == 1 &&
-                           this.frameBuffer[col][row] ^ ((this.memory[this.I+i] << j) & 0x80) == 0)
+                        if(this.frameBuffer[col][row] & newBit)
                         {
                             collision = true
                         }
 
-                        this.frameBuffer[col][row] ^= ((this.memory[this.I+i] << j) & 0x80)
+                        this.frameBuffer[col][row] ^= newBit
                     }
                 }
 
@@ -882,7 +896,26 @@ class CPU {
 
     // Mock display only
     renderDisplay() {
-        let grid = ''
+        for(var row = 0; row < 32; row++)
+        {
+            for(var col = 0; col < 64; col++)
+            {
+                if(this.frameBuffer[row][col] == 0)
+                {
+                    this.screen.clearRegion(col, col + 1, row, row + 1)
+                }
+                else
+                {
+                    this.screen.fillRegion(this.color, '█', col, col + 1, row, row + 1)
+                }
+            }
+        }
+
+        this.screen.render()
+
+        // old console.log renderer below
+        
+        /*let grid = ''
 
         for(var row = 0; row < 32; row++)
         {
@@ -903,7 +936,7 @@ class CPU {
             grid += '\n'
         }
 
-        console.log(grid)
+        console.log(grid)*/
     }
 
 } // end CPU
