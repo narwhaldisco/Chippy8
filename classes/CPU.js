@@ -149,10 +149,10 @@ class CPU {
 
         var instruction = this.decode(opcode);
 
-        if(this.instNum > 500)
+        /*if(this.instNum > 500)
         {
             console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + instruction.id)
-        }
+        }*/
         
         this.execute(instruction);
 
@@ -319,6 +319,14 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf0ff) == 0xf018)
+        {
+            // fx18 - Load ST with Vx
+            var id = "LD_ST_Vx"
+            var args = (opcode & 0x0f00)
+
+            return {id, args}
+        }
         else if((opcode & 0xf0ff) == 0xf007)
         {
             // fx07 - Load Vx with DT
@@ -348,11 +356,37 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf00f) == 0x8000)
+        {
+            // 8xy0 - Set Vx = Vy.
+
+            var id = "LD_Vx_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+        }
         else if((opcode & 0xf00f) == 0x8002)
         {
             // 8xy2 - Set Vx = Vx AND Vy.
 
             var id = "Vx_AND_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8005)
+        {
+            // 8xy5 - Set Vx = Vx - Vy, set VF = NOT borrow.
+
+            var id = "SUB_Vx_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
             var Vy = (opcode & 0x00f0) >> 4
@@ -370,6 +404,19 @@ class CPU {
 
             var id = "SHL_Vx"
             var args = (opcode & 0x0f00) >> 8;
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8004)
+        {
+            // 8xy4 - Set Vx = Vx + Vy, set VF = carry
+
+            var id = "ADD_Vx_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy}
 
             return {id, args}
         }
@@ -413,15 +460,13 @@ class CPU {
 
                 break;
             case 'DRW_Vx_Vy_Nibble':
-                // TO DO Dxyn - DRW Vx, Vy nibble
+                // Dxyn - DRW Vx, Vy nibble
 
                 // Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
                 // The interpreter reads n bytes from memory, starting at the address stored in I. 
                 // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. 
                 // If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of 
                 // it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
-
-                // let's do collision after
 
                 var Vx = args.Vx
                 var Vy = args.Vy
@@ -438,7 +483,7 @@ class CPU {
 
                 //console.log('V' + Vx.toString(16) + ': ' + startx + ' V' + Vy.toString(16) + ': ' + starty)
 
-                // TODO: COLLISION!!!!
+                var collision = false
 
                 // for each row
                 for(var i = 0; i < n; i++)
@@ -455,8 +500,25 @@ class CPU {
 
                         //console.log('col: ' + col + ' row: ' + row)
 
+                        // If we are about to erase a pixel, remember so we can set Vf
+                        if(this.frameBuffer[col][row] == 1 &&
+                           this.frameBuffer[col][row] ^ ((this.memory[this.I+i] << j) & 0x80) == 0)
+                        {
+                            collision = true
+                        }
+
                         this.frameBuffer[col][row] ^= ((this.memory[this.I+i] << j) & 0x80)
                     }
+                }
+
+                // Set Vf if we had a collision, otherwise unset it
+                if(collision == true)
+                {
+                    this.registers[0xf] = 1
+                }
+                else
+                {
+                    this.registers[0xf] = 0
                 }
 
                 this.renderDisplay()
@@ -617,6 +679,21 @@ class CPU {
                 this.advancePC()
 
                 break;
+            case 'LD_Vx_Vy':
+                // Set Vx = Vy.
+                // Stores the value of register Vy in register Vx.
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                this.registers[Vx] = this.registers[Vy]
+
+                this.advancePC()
+
+                break;
             case 'LD_DT_Vx':
                 // Set delay timer = Vx.
                 // DT is set equal to the value of Vx.
@@ -626,6 +703,19 @@ class CPU {
                 this.checkRegister(reg)
 
                 this.DT = this.registers[reg]
+
+                this.advancePC()
+
+                break;
+            case 'LD_ST_Vx':
+                // Set sound delay timer = Vx.
+                // ST is set equal to the value of Vx.
+
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                this.ST = this.registers[reg]
 
                 this.advancePC()
 
@@ -716,6 +806,57 @@ class CPU {
 
                 this.advancePC()
 
+                break;
+            case 'ADD_Vx_Vy':
+
+                // Set Vx = Vx + Vy, set VF = carry.
+                // The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. 
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                var sum = this.registers[Vx] + this.registers[Vy]
+
+                this.registers[Vx] = sum
+
+                if(sum > 255)
+                {
+                    this.registers[0xf] = 1
+                }
+                else
+                {
+                    this.registers[0xf] = 0
+                }
+
+                this.advancePC()
+            
+                break;
+            case 'SUB_Vx_Vy':
+                // Set Vx = Vx - Vy, set VF = NOT borrow.
+                // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                this.registers[Vx] = this.registers[Vx] - this.registers[Vy]
+
+                if(this.registers[Vx] > this.registers[Vy])
+                {
+                    this.registers[0xf] = 1
+                }
+                else
+                {
+                    this.registers[0xf] = 0
+                }
+
+                this.advancePC()
+            
                 break;
             default:
                 throw new Error('cant execute instruction: ' + id)
