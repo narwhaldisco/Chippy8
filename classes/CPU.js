@@ -498,16 +498,17 @@ class CPU {
                         var col = ((starty+i) % 32)
                         var row = ((startx+j) % 64)
 
+                        var newBit = ((this.memory[this.I+i] << j) & 0x80)
+
                         //console.log('col: ' + col + ' row: ' + row)
 
                         // If we are about to erase a pixel, remember so we can set Vf
-                        if(this.frameBuffer[col][row] == 1 &&
-                           this.frameBuffer[col][row] ^ ((this.memory[this.I+i] << j) & 0x80) == 0)
+                        if(this.frameBuffer[col][row] & newBit)
                         {
                             collision = true
                         }
 
-                        this.frameBuffer[col][row] ^= ((this.memory[this.I+i] << j) & 0x80)
+                        this.frameBuffer[col][row] ^= newBit
                     }
                 }
 
