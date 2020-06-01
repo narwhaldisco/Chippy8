@@ -3,12 +3,10 @@ const fs = require('fs');
 const { CPU } = require('./CPU.js')
 const { RomBuffer } = require('./RomBuffer.js');
 
-// Andrew is not the best
-
 var cpu = new CPU();
 
 // Load the rom
-const rom = fs.readFileSync('../roms/PONG');
+const rom = fs.readFileSync('roms/INVADERS');
 if (!rom) throw new Error('File not found')
 
 const rombuf = new RomBuffer(rom);
@@ -26,7 +24,7 @@ console.log(msg);
 
 let timer = 0;
 
-/*for(var i = 0; i < 520; i++)
+/*for(var i = 0; i < 1500; i++)
 {
     // probably better to make the timer tick a function of the CPU speed
     timer++

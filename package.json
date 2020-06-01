@@ -4,7 +4,7 @@
   "description": "A experimental chip8 emulator in javascript",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "chippy8": "node classes/Chippy8.js"
   },
   "repository": {
     "type": "git",

@@ -1,4 +1,5 @@
 const FONT_SET = require('../data/font')
+const keyMap = require('../data/keyMap')
 const blessed = require('blessed')
 
 
@@ -26,6 +27,10 @@ class CPU {
         this.PC = 0x200;
         this.frameBuffer = [];
 
+        // keys stuff
+        this.keys = 0
+        this.keyPressed = undefined
+
         // blessed stuff
         this.blessed = blessed
         this.screen = blessed.screen({ smartCSR: true })
@@ -37,10 +42,39 @@ class CPU {
             process.exit(0)
         })
 
+        // key down event
+        this.screen.on('keypress', (_, key) => {
+            const keyIndex = keyMap.indexOf(key.full)
+    
+            if (keyIndex > -1) {
+            this.setKeys(keyIndex)
+            }
+        })
+
+        // key up?
+        setInterval(() => {
+            // Emulate a keyup event to clear all pressed keys
+            this.resetKeys()
+          }, 100)
+  
         // debug stuff
         this.instNum = 0;
     }
 
+    // update the keys/keypressed vars
+    setKeys(keyIndex) {
+        let keyMask = 1 << keyIndex
+
+        this.keys = this.keys | keyMask
+        this.keyPressed = keyIndex
+    }
+
+    // clear the keys/keypressed vars
+    resetKeys() {
+        this.keys = 0
+        this.keyPressed = undefined
+    }
+    
     // Load buffer into memory
     load(romBuffer) {
         this.reset()
@@ -101,7 +135,7 @@ class CPU {
 
         // TEST CODE
         this.memory[0x200] = 0x60;
-        this.memory[0x201] = 0x09; // LD_VX_B
+        this.memory[0x201] = 0x09; // LD_Vx_B
         this.memory[0x202] = 0xf0; 
         this.memory[0x203] = 0x29; // LD_I_FONT
         this.memory[0x204] = 0xd0; 
@@ -162,7 +196,7 @@ class CPU {
 
         var instruction = this.decode(opcode);
 
-        /*if(this.instNum > 500)
+        /*if(this.instNum > 1350)
         {
             console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + instruction.id)
         }*/
@@ -202,7 +236,7 @@ class CPU {
         {  
             // 6xkk - LD Vx, byte
             // interpreter puts the value kk into register Vx
-            var id = "LD_VX_B"
+            var id = "LD_Vx_B"
             var Vx = (opcode & 0x0f00) >> 8;
             var kk = (opcode & 0x00ff);
 
@@ -451,7 +485,7 @@ class CPU {
                 this.PC = args;
 
                 break;
-            case 'LD_VX_B':
+            case 'LD_Vx_B':
                 // 6xkk - LD Vx, byte
                 var reg = args.Vx
                 var kk = args.kk
@@ -561,7 +595,7 @@ class CPU {
 
                 this.I += this.registers[reg];
 
-                console.log(this.I)
+                //console.log(this.I)
 
                 this.advancePC()
 
@@ -596,6 +630,8 @@ class CPU {
                 var kk  = args.kk
 
                 this.checkRegister(reg)
+
+                //console.log("SNE_Vx_B Vx: " + this.registers[reg] + " B: " + kk)
 
                 // advance two instructions if the register does not match the byte
                 if(this.registers[reg] != kk)
@@ -666,6 +702,7 @@ class CPU {
             case 'LD_I_FONT':
                 // Set I = location of sprite for digit Vx.
                 // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
+
                 var reg = args;
                 this.checkRegister(reg)
 
@@ -759,6 +796,9 @@ class CPU {
 
                 var rand = Math.floor((Math.random() * 255));
 
+                // certified random
+                //var rand = 110;
+
                 var val = (rand & kk)
 
                 //console.log("rand: " + rand + " val: " + val)
@@ -769,17 +809,15 @@ class CPU {
 
                 break;
             case 'SKNP_Vx':
-
-                //TODO!!!! actually implement key presses
-
                 // Skip next instruction if key with the value of Vx is NOT pressed.
                 // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+                
                 var reg = args;
 
                 this.checkRegister(reg)
 
                 // if key is NOT pressed...
-                if(true)
+                if(!(this.keys & (1 << this.registers[reg])))
                 {
                     this.PC = this.PC + 4
                 }
@@ -798,6 +836,8 @@ class CPU {
                 
                 this.checkRegister(Vx)
                 this.checkRegister(Vy)
+
+                //console.log("Vx_AND_Vy Vx: " + this.registers[Vx].toString(16) + " Vy: " + this.registers[Vy].toString(16))
 
                 this.registers[Vx] = (this.registers[Vx] & this.registers[Vy])
 
@@ -834,6 +874,8 @@ class CPU {
 
                 var sum = this.registers[Vx] + this.registers[Vy]
 
+                //console.log("ADD_Vx_Vy sum: " + sum)
+
                 this.registers[Vx] = sum
 
                 if(sum > 255)
@@ -858,8 +900,7 @@ class CPU {
                 this.checkRegister(Vx)
                 this.checkRegister(Vy)
 
-                this.registers[Vx] = this.registers[Vx] - this.registers[Vy]
-
+                // Check if we need to set flag
                 if(this.registers[Vx] > this.registers[Vy])
                 {
                     this.registers[0xf] = 1
@@ -868,6 +909,9 @@ class CPU {
                 {
                     this.registers[0xf] = 0
                 }
+
+                // Then do the subtraction!
+                this.registers[Vx] = this.registers[Vx] - this.registers[Vy]
 
                 this.advancePC()
             
@@ -896,6 +940,7 @@ class CPU {
 
     // Mock display only
     renderDisplay() {
+
         for(var row = 0; row < 32; row++)
         {
             for(var col = 0; col < 64; col++)
@@ -913,9 +958,9 @@ class CPU {
 
         this.screen.render()
 
-        // old console.log renderer below
-        
-        /*let grid = ''
+/*
+        // old console.log renderer below     
+        let grid = ''
 
         for(var row = 0; row < 32; row++)
         {
@@ -936,7 +981,8 @@ class CPU {
             grid += '\n'
         }
 
-        console.log(grid)*/
+        console.log(grid)
+*/
     }
 
 } // end CPU
