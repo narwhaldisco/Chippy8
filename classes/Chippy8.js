@@ -6,7 +6,7 @@ const { RomBuffer } = require('./RomBuffer.js');
 var cpu = new CPU();
 
 // Load the rom
-const rom = fs.readFileSync('roms/PONG');
+const rom = fs.readFileSync('roms/INVADERS');
 if (!rom) throw new Error('File not found')
 
 const rombuf = new RomBuffer(rom);

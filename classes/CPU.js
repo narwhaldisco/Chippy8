@@ -1,4 +1,5 @@
 const FONT_SET = require('../data/font')
+const keyMap = require('../data/keyMap')
 const blessed = require('blessed')
 
 
@@ -26,6 +27,10 @@ class CPU {
         this.PC = 0x200;
         this.frameBuffer = [];
 
+        // keys stuff
+        this.keys = 0
+        this.keyPressed = undefined
+
         // blessed stuff
         this.blessed = blessed
         this.screen = blessed.screen({ smartCSR: true })
@@ -37,10 +42,39 @@ class CPU {
             process.exit(0)
         })
 
+        // key down event
+        this.screen.on('keypress', (_, key) => {
+            const keyIndex = keyMap.indexOf(key.full)
+    
+            if (keyIndex > -1) {
+            this.setKeys(keyIndex)
+            }
+        })
+
+        // key up?
+        setInterval(() => {
+            // Emulate a keyup event to clear all pressed keys
+            this.resetKeys()
+          }, 100)
+  
         // debug stuff
         this.instNum = 0;
     }
 
+    // update the keys/keypressed vars
+    setKeys(keyIndex) {
+        let keyMask = 1 << keyIndex
+
+        this.keys = this.keys | keyMask
+        this.keyPressed = keyIndex
+    }
+
+    // clear the keys/keypressed vars
+    resetKeys() {
+        this.keys = 0
+        this.keyPressed = undefined
+    }
+    
     // Load buffer into memory
     load(romBuffer) {
         this.reset()
@@ -668,6 +702,7 @@ class CPU {
             case 'LD_I_FONT':
                 // Set I = location of sprite for digit Vx.
                 // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
+
                 var reg = args;
                 this.checkRegister(reg)
 
@@ -774,17 +809,15 @@ class CPU {
 
                 break;
             case 'SKNP_Vx':
-
-                //TODO!!!! actually implement key presses
-
                 // Skip next instruction if key with the value of Vx is NOT pressed.
                 // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+                
                 var reg = args;
 
                 this.checkRegister(reg)
 
                 // if key is NOT pressed...
-                if(true)
+                if(!(this.keys & (1 << this.registers[reg])))
                 {
                     this.PC = this.PC + 4
                 }
