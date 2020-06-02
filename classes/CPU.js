@@ -25,6 +25,7 @@ class CPU {
         this.I = 0;
         this.SP = -1;
         this.PC = 0x200;
+        this.instruction = undefined;
         this.frameBuffer = [];
 
         // keys stuff
@@ -194,14 +195,14 @@ class CPU {
         // Fetch, decode and execute this bad boy
         var opcode = this.fetch();
 
-        var instruction = this.decode(opcode);
+        this.instruction = this.decode(opcode);
 
         /*if(this.instNum > 1350)
         {
-            console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + instruction.id)
+            console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + this.instruction.id)
         }*/
         
-        this.execute(instruction);
+        this.execute(this.instruction);
 
         //this.renderDisplay()
 
@@ -223,7 +224,16 @@ class CPU {
 
         // Need to figure out which instruction this is, and what are the arguments and
         // return it in some kind of javascripty object to pass to execute().
-        if((opcode & 0xf000) == 0x1000)
+        if((opcode & 0xffff) == 0x00e0)
+        {
+            // 00e0 - CLS
+            // clears the screen
+            var id = "CLS"
+            var args = "";
+
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0x1000)
         {
             // 1nnn - Jp addr 
             // Jump to location nnn.
@@ -362,7 +372,7 @@ class CPU {
         {
             // fx15 - Load DT with Vx
             var id = "LD_DT_Vx"
-            var args = (opcode & 0x0f00)
+            var args = (opcode & 0x0f00) >> 8
 
             return {id, args}
         }
@@ -370,7 +380,7 @@ class CPU {
         {
             // fx18 - Load ST with Vx
             var id = "LD_ST_Vx"
-            var args = (opcode & 0x0f00)
+            var args = (opcode & 0x0f00) >> 8
 
             return {id, args}
         }
@@ -378,7 +388,7 @@ class CPU {
         {
             // fx07 - Load Vx with DT
             var id = "LD_Vx_DT"
-            var args = (opcode & 0x0f00)
+            var args = (opcode & 0x0f00) >> 8
 
             return {id, args}
         }
@@ -391,6 +401,15 @@ class CPU {
             var kk = opcode & 0x00ff
 
             var args = {Vx, kk}
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xe09e)
+        {
+            // exa1 - Skip next instruction if key with the value of Vx is pressed
+
+            var id = "SKP_Vx"
+            var args = (opcode & 0x0f00) >> 8
 
             return {id, args}
         }
@@ -421,6 +440,19 @@ class CPU {
             // 8xy2 - Set Vx = Vx AND Vy.
 
             var id = "Vx_AND_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8003)
+        {
+            // 8xy3 - Set Vx = Vx XOR Vy.
+
+            var id = "Vx_XOR_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
             var Vy = (opcode & 0x00f0) >> 4
@@ -467,6 +499,15 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf00f) == 0x8006)
+        {
+            // 8xy6 - Set Vx = Vx SHR 1.
+
+            var id = "SHR_Vx"
+            var args = (opcode & 0x0f00) >> 8;
+
+            return {id, args}
+        }
         else
         {
             throw new Error('cant decode opcode: ' + opcode.toString(16))
@@ -480,6 +521,24 @@ class CPU {
         // Big switch case of all instructions
         switch(id)
         {
+            case 'CLS':
+                // Clear the display.
+
+                // Set all pixels in framebuffer to zero
+                for (let i = 0; i < 32; i++) 
+                {        
+                    for (let j = 0; j < 64; j++) 
+                    {
+                        this.frameBuffer[i][j] = 0
+                    }
+                }
+
+                // rerender the screen
+                this.renderDisplay()
+
+                this.advancePC()
+
+                break;
             case 'JP':
                 // 1nnn - Jp addr 
                 this.PC = args;
@@ -827,6 +886,25 @@ class CPU {
                 }
 
                 break;
+            case 'SKP_Vx':
+                // Skip next instruction if key with the value of Vx is NOT pressed.
+                // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+                
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                // if key is pressed...
+                if(this.keys & (1 << this.registers[reg]))
+                {
+                    this.PC = this.PC + 4
+                }
+                else
+                {
+                    this.advancePC()
+                }
+
+                break;
             case 'Vx_AND_Vy':
                 // Set Vx = Vx AND Vy.
                 // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
@@ -844,6 +922,23 @@ class CPU {
                 this.advancePC()
 
                 break;
+            case 'Vx_XOR_Vy':
+                // Set Vx = Vx XOR Vy.
+                // Performs a bitwise XOR on the values of Vx and Vy, then stores the result in Vx.
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+                
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                //console.log("Vx_XOR_Vy Vx: " + this.registers[Vx].toString(16) + " Vy: " + this.registers[Vy].toString(16))
+
+                this.registers[Vx] = (this.registers[Vx] ^ this.registers[Vy])
+
+                this.advancePC()
+
+                break;
             case 'SHL_Vx':
                 // Set Vx = Vx SHL 1.
                 // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
@@ -857,6 +952,23 @@ class CPU {
 
                 // Mulitply Vx by 2
                 this.registers[reg] <<= 1;
+
+                this.advancePC()
+
+                break;
+            case 'SHR_Vx':
+                // Set Vx = Vx SHR 1.
+                // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is divided by 2.
+
+                var reg = args;
+
+                this.checkRegister(reg)
+
+                // Put least significant bit into Vf
+                this.registers[0xf] = (this.registers[reg] & 1)
+
+                // Divide Vx by 2
+                this.registers[reg] >>= 1;
 
                 this.advancePC()
 
@@ -934,7 +1046,7 @@ class CPU {
         // Only 16 registers, throw an error if we try and access one beyond
         if(reg > 15)
         {
-            throw new Error('bad register: ' + reg)
+            throw new Error('bad register: ' + reg + ' instruction: ' + this.instruction.id)
         }   
     }
 
@@ -958,8 +1070,8 @@ class CPU {
 
         this.screen.render()
 
-/*
-        // old console.log renderer below     
+        // old console.log renderer below
+/*     
         let grid = ''
 
         for(var row = 0; row < 32; row++)
