@@ -392,6 +392,14 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf0ff) == 0xf00A)
+        {
+            // fx0A - All execution stops until a key is pressed, Load Vx with Key
+            var id = "LD_Vx_KEY"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
         else if((opcode & 0xf000) == 0xc000)
         {
             // cxkk - Load Vx with rand AND kk
@@ -1027,6 +1035,24 @@ class CPU {
 
                 this.advancePC()
             
+                break;
+            case 'LD_Vx_KEY':
+                var reg = args;
+
+                this.checkRegister(reg);
+
+                if(this.keyPressed == undefined)
+                {
+                    // just let the interpreter loop on this instruction, don't advance PC.
+                    return;
+                }
+
+                this.registers[reg] = this.keyPressed;
+
+                this.keyPressed = undefined;
+
+                this.advancePC();
+
                 break;
             default:
                 throw new Error('cant execute instruction: ' + id)
