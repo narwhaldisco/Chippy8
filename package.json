@@ -4,7 +4,8 @@
   "description": "A experimental chip8 emulator in javascript",
   "main": "index.js",
   "scripts": {
-    "chippy8": "node classes/Chippy8.js"
+    "chippy8": "node classes/Chippy8.js",
+    "build:web": "browserify browser.js > web/bundle.js"
   },
   "repository": {
     "type": "git",
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/narwhaldisco/Chippy8#readme",
   "dependencies": {
-    "blessed": "^0.1.81"
+    "blessed": "^0.1.81",
+    "browserify": "^16.5.1"
   }
 }

@@ -1,3 +1,18 @@
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+(function (global){
+const { CPU } = require('./classes/CPU')
+const { RomBuffer } = require('./classes/RomBuffer')
+
+const cpu = new CPU()
+
+// Set CPU and Rom Buffer to the global object, which will become window in the
+// browser after bundling.
+global.cpu = cpu
+global.RomBuffer = RomBuffer
+
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./classes/CPU":2,"./classes/RomBuffer":3}],2:[function(require,module,exports){
 const FONT_SET = require('../data/font')
 const keyMap = require('../data/keyMap')
 
@@ -1193,3 +1208,140 @@ module.exports = {
     CPU,
   }
   
+},{"../data/font":4,"../data/keyMap":5}],3:[function(require,module,exports){
+// borrowed from https://www.taniarascia.com/writing-an-emulator-in-javascript-chip8/
+
+class RomBuffer {
+    /**
+     * @param {binary} fileContents ROM binary
+     */
+    constructor(fileContents) {
+      this.data = []
+  
+      // Read the raw data buffer from the file
+      const buffer = fileContents
+  
+      // Create 16-bit big endian opcodes from the buffer
+      for (let i = 0; i < buffer.length; i += 2) {
+        this.data.push((buffer[i] << 8) | (buffer[i + 1] << 0))
+      }
+    }
+
+      // Hex dump for debugging
+  dump() {
+    let lines = []
+
+    for (let i = 0; i < this.data.length; i += 8) {
+      const address = (i * 2).toString(16).padStart(6, '0')
+      const block = this.data.slice(i, i + 8)
+      const hexString = block.map(value => value.toString(16).padStart(4, '0')).join(' ')
+
+      lines.push(`${address} ${hexString}`)
+    }
+
+    return lines.join('\n')
+  }
+}
+
+// export RomBuffer
+module.exports = {
+  RomBuffer,
+}
+},{}],4:[function(require,module,exports){
+const FONT_SET = [
+  0xf0,
+  0x90,
+  0x90,
+  0x90,
+  0xf0,
+  0x20,
+  0x60,
+  0x20,
+  0x20,
+  0x70,
+  0xf0,
+  0x10,
+  0xf0,
+  0x80,
+  0xf0,
+  0xf0,
+  0x10,
+  0xf0,
+  0x10,
+  0xf0,
+  0x90,
+  0x90,
+  0xf0,
+  0x10,
+  0x10,
+  0xf0,
+  0x80,
+  0xf0,
+  0x10,
+  0xf0,
+  0xf0,
+  0x80,
+  0xf0,
+  0x90,
+  0xf0,
+  0xf0,
+  0x10,
+  0x20,
+  0x40,
+  0x40,
+  0xf0,
+  0x90,
+  0xf0,
+  0x90,
+  0xf0,
+  0xf0,
+  0x90,
+  0xf0,
+  0x10,
+  0xf0,
+  0xf0,
+  0x90,
+  0xf0,
+  0x90,
+  0x90,
+  0xe0,
+  0x90,
+  0xe0,
+  0x90,
+  0xe0,
+  0xf0,
+  0x80,
+  0x80,
+  0x80,
+  0xf0,
+  0xe0,
+  0x90,
+  0x90,
+  0x90,
+  0xe0,
+  0xf0,
+  0x80,
+  0xf0,
+  0x80,
+  0xf0,
+  0xf0,
+  0x80,
+  0xf0,
+  0x80,
+  0x80,
+]
+
+module.exports = FONT_SET
+
+},{}],5:[function(require,module,exports){
+/**
+ 1 2 3 4
+ Q W E R
+ A S D F
+ Z X C V 
+*/
+
+const keyMap = ['1', '2', '3', '4', 'q', 'w', 'e', 'r', 'a', 's', 'd', 'f', 'z', 'x', 'c', 'v']
+
+module.exports = keyMap
+},{}]},{},[1]);
