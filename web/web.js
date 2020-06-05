@@ -31,10 +31,6 @@ async function loadRom() {
     cycle()
 }
 
-console.log("hello world")
-
 loadRom()
-
-console.log("loaded rom")
 
 //cycle()

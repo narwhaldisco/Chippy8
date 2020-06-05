@@ -1,11 +1,32 @@
 <!doctype html>
 <html>
   <head>
-    <title>This is the title of the webpage!</title>
+    <title>Chippy8 by Nick Ward</title>
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <p>Welcome to my meme page.</p>
-    <canvas></canvas>
+    <p>Chippy8 is a Chip8 emulator/interpreter written in javascript by Nick Ward</p>
+    <a href="https://github.com/narwhaldisco/Chippy8">Check out the source on github</a>
+    <section>
+      <div>
+        <canvas></canvas>
+      </div>
+      <aside>
+        <select>
+          <option disabled selected>Load ROM...</option>
+          <option value="CONNECT4">Connect4</option>
+          <option value="PONG">Pong</option>
+          <option value="INVADERS">Invaders</option>
+          <option value="TETRIS">Tetris</option>
+          <option value="WALL">Wall</option>
+          <option value="LANDING">Lunar Landing</option>
+          <option value="BLINKY">Blinky</option>
+          <option value="MAZE">Maze</option>
+          <option value="TANK">Tank</option>
+          <option value="TRON">Tron</option>
+        </select>
+      </aside>
+    </section>
     <script src="./bundle.js"></script>
     <script src="./web.js"></script>
   </body>
