@@ -2,8 +2,11 @@
 (function (global){
 const { CPU } = require('./classes/CPU')
 const { RomBuffer } = require('./classes/RomBuffer')
+const { WebInterface } = require('./classes/interfaces/WebInterface')
 
-const cpu = new CPU()
+const webInterface = new WebInterface()
+
+const cpu = new CPU(webInterface)
 
 // Set CPU and Rom Buffer to the global object, which will become window in the
 // browser after bundling.
@@ -12,12 +15,8 @@ global.RomBuffer = RomBuffer
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./classes/CPU":2,"./classes/RomBuffer":3}],2:[function(require,module,exports){
+},{"./classes/CPU":2,"./classes/RomBuffer":3,"./classes/interfaces/WebInterface":4}],2:[function(require,module,exports){
 const FONT_SET = require('../data/font')
-const keyMap = require('../data/keyMap')
-
-//const blessed = require('blessed')
-
 
 // Chip8 CPU class
 // Defines the CPU itself and logic to execute programs
@@ -32,7 +31,8 @@ const keyMap = require('../data/keyMap')
 */
 
 class CPU {
-    constructor() {
+    constructor(cpuInterface) {
+        this.CPUInterface = cpuInterface;
         this.memory = new Uint8Array(4096);
         this.registers = new Uint8Array(16);
         this.stack = new Uint16Array(16);
@@ -43,87 +43,14 @@ class CPU {
         this.PC = 0x200;
         this.instruction = undefined;
         this.frameBuffer = [];
-
-        // keys stuff
-        this.keys = 0
-        this.keyPressed = undefined
-
-        // blessed stuff
-        /*
-        this.blessed = blessed
-        this.screen = blessed.screen({ smartCSR: true })
-        this.screen.title = 'Chippy8.js'
-        this.color = blessed.helpers.attrToBinary({ fg: '#33ff66' })
-        
-
-        // Exit game
-        this.screen.key(['escape', 'C-c'], () => {
-            process.exit(0)
-        })
-
-        // key down event
-        this.screen.on('keypress', (_, key) => {
-            const keyIndex = keyMap.indexOf(key.full)
-    
-            if (keyIndex > -1) {
-            this.setKeys(keyIndex)
-            }
-        })
-
-        // key up?
-        setInterval(() => {
-            // Emulate a keyup event to clear all pressed keys
-            this.resetKeys()
-          }, 100)
-        */
-
-        // Web stuff
-        this.screen = document.querySelector('canvas')
-        this.multiplier = 10
-        this.screen.width = 64 * this.multiplier
-        this.screen.height = 32 * this.multiplier
-        this.context = this.screen.getContext('2d')
-        this.context.fillStyle = 'black'
-        this.context.fillRect(0, 0, this.screen.width, this.screen.height)
-
-        // key down event
-        document.addEventListener('keydown', event => {
-            const keyIndex = keyMap.indexOf(event.key)
-      
-            if (keyIndex > -1) {
-                this.setKeys(keyIndex)
-            }
-        })
-
-        // hey, a proper key up event
-        document.addEventListener('keyup', event => {
-            this.resetKeys()
-        })
-      
     
         // debug stuff
         this.instNum = 0;
-    }
-
-    // update the keys/keypressed vars
-    setKeys(keyIndex) {
-        let keyMask = 1 << keyIndex
-
-        this.keys = this.keys | keyMask
-        this.keyPressed = keyIndex
-    }
-
-    // clear the keys/keypressed vars
-    resetKeys() {
-        this.keys = 0
-        this.keyPressed = undefined
     }
     
     // Load buffer into memory
     load(romBuffer) {
         this.reset()
-
-        // TODO: load fontset into memory, and anything else that is reserved.
 
         // 0-80 in memory is reserved for font set
         for (let i = 0; i < FONT_SET.length; i++) 
@@ -134,8 +61,6 @@ class CPU {
         // Get ROM data from ROM buffer
         const romData = romBuffer.data;
         let memoryStart = 0x200;
-
-        console.log(romData)
 
         // put the rom data into memory, starting at 0x200
         // memory is an 8bit array, but opcodes are 16bit, so each opcode
@@ -203,8 +128,7 @@ class CPU {
 
     reset()
     {
-        // clear memory / registers / other stuff?
-
+        // clear memory / registers / other stuff
         this.memory = new Uint8Array(4096);
         this.registers = new Uint8Array(16);
         this.stack = new Uint16Array(16);
@@ -248,8 +172,6 @@ class CPU {
         }*/
         
         this.execute(this.instruction);
-
-        //this.renderDisplay()
 
         this.instNum++
     }
@@ -929,7 +851,7 @@ class CPU {
                 this.checkRegister(reg)
 
                 // if key is NOT pressed...
-                if(!(this.keys & (1 << this.registers[reg])))
+                if(!(this.CPUInterface.getKeys() & (1 << this.registers[reg])))
                 {
                     this.PC = this.PC + 4
                 }
@@ -948,7 +870,7 @@ class CPU {
                 this.checkRegister(reg)
 
                 // if key is pressed...
-                if(this.keys & (1 << this.registers[reg]))
+                if(this.CPUInterface.getKeys() & (1 << this.registers[reg]))
                 {
                     this.PC = this.PC + 4
                 }
@@ -1086,15 +1008,15 @@ class CPU {
 
                 this.checkRegister(reg);
 
-                if(this.keyPressed == undefined)
+                if(this.CPUInterface.getKeyPressed() == undefined)
                 {
                     // just let the interpreter loop on this instruction, don't advance PC.
                     return;
                 }
 
-                this.registers[reg] = this.keyPressed;
+                this.registers[reg] = this.CPUInterface.getKeyPressed();
 
-                this.keyPressed = undefined;
+                this.CPUInterface.resetKeys();
 
                 this.advancePC();
 
@@ -1121,58 +1043,10 @@ class CPU {
         }   
     }
 
-    // Mock display only
+    // render the framebuffer to the appropriate target
     renderDisplay() {
 
-        // blessed renderer below
-/*
-        for(var row = 0; row < 32; row++)
-        {
-            for(var col = 0; col < 64; col++)
-            {
-                if(this.frameBuffer[row][col] == 0)
-                {
-                    this.screen.clearRegion(col, col + 1, row, row + 1)
-                }
-                else
-                {
-                    this.screen.fillRegion(this.color, '█', col, col + 1, row, row + 1)
-                }
-            }
-        }
-
-        this.screen.render()
-
-*/
-
-        // web / canvas renderer below
-        for(var row = 0; row < 32; row++)
-        {
-            for(var col = 0; col < 64; col++)
-            {
-                if(this.frameBuffer[row][col] == 0)
-                {
-                    this.context.fillStyle = 'white'
-                    this.context.fillRect(
-                        col * this.multiplier,
-                        row * this.multiplier,
-                        this.multiplier,
-                        this.multiplier
-                    )
-              
-                }
-                else
-                {
-                    this.context.fillStyle = 'black'
-                    this.context.fillRect(
-                        col * this.multiplier,
-                        row * this.multiplier,
-                        this.multiplier,
-                        this.multiplier)
-                }
-            }
-        }
-
+        this.CPUInterface.render(this.frameBuffer)
 
         // old console.log renderer below
 /*
@@ -1208,7 +1082,7 @@ module.exports = {
     CPU,
   }
   
-},{"../data/font":4,"../data/keyMap":5}],3:[function(require,module,exports){
+},{"../data/font":5}],3:[function(require,module,exports){
 // borrowed from https://www.taniarascia.com/writing-an-emulator-in-javascript-chip8/
 
 class RomBuffer {
@@ -1248,6 +1122,98 @@ module.exports = {
   RomBuffer,
 }
 },{}],4:[function(require,module,exports){
+const keyMap = require('../../data/keyMap')
+
+class WebInterface{
+    constructor() {
+
+        // Screen stuff
+        this.screen = document.querySelector('canvas')
+        this.multiplier = 10
+        this.screen.width = 64 * this.multiplier
+        this.screen.height = 32 * this.multiplier
+        this.context = this.screen.getContext('2d')
+        this.context.fillStyle = 'black'
+        this.context.fillRect(0, 0, this.screen.width, this.screen.height)
+
+        // Keys
+        this.keys = 0
+        this.keyPressed = undefined
+
+        // key down event
+        document.addEventListener('keydown', event => {
+            const keyIndex = keyMap.indexOf(event.key)
+        
+            if (keyIndex > -1) {
+                this.setKeys(keyIndex)
+            }
+        })
+
+        // hey, a proper key up event
+        document.addEventListener('keyup', event => {
+            this.resetKeys()
+        })
+    }
+
+    // return keys
+    getKeys() {
+        return this.keys
+    }
+
+    // return keys
+    getKeyPressed() {
+        return this.keyPressed
+    }
+    
+    // update the keys/keypressed vars
+    setKeys(keyIndex) {
+        let keyMask = 1 << keyIndex
+
+        this.keys = this.keys | keyMask
+        this.keyPressed = keyIndex
+    }
+
+    // clear the keys/keypressed vars
+    resetKeys() {
+        this.keys = 0
+        this.keyPressed = undefined
+    }
+
+    render(frameBuffer){
+        // web / canvas renderer below
+        for(var row = 0; row < 32; row++)
+        {
+            for(var col = 0; col < 64; col++)
+            {
+                if(frameBuffer[row][col] == 0)
+                {
+                    this.context.fillStyle = 'white'
+                    this.context.fillRect(
+                        col * this.multiplier,
+                        row * this.multiplier,
+                        this.multiplier,
+                        this.multiplier
+                    )
+              
+                }
+                else
+                {
+                    this.context.fillStyle = 'black'
+                    this.context.fillRect(
+                        col * this.multiplier,
+                        row * this.multiplier,
+                        this.multiplier,
+                        this.multiplier)
+                }
+            }
+        }
+    }
+}
+
+module.exports = {
+    WebInterface,
+  }  
+},{"../../data/keyMap":6}],5:[function(require,module,exports){
 const FONT_SET = [
   0xf0,
   0x90,
@@ -1333,7 +1299,7 @@ const FONT_SET = [
 
 module.exports = FONT_SET
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 /**
  1 2 3 4
  Q W E R
