@@ -13,8 +13,6 @@ http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#8xy2
 
 to run:
 
-clone
-
-npm install
-
-node classes/Chippy8.js
+> clone
+> npm install
+> npm run play:terminal

@@ -2,8 +2,11 @@ const fs = require('fs');
 
 const { CPU } = require('./CPU.js')
 const { RomBuffer } = require('./RomBuffer.js');
+const { TerminalInterface } = require('./interfaces/TerminalInterface')
 
-var cpu = new CPU();
+const terminalInterface = new TerminalInterface()
+
+var cpu = new CPU(terminalInterface);
 
 // Load the rom
 const rom = fs.readFileSync('roms/INVADERS');
