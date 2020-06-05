@@ -1,7 +1,8 @@
 # Chippy8
 A experimental chip8 emulator in javascript
 
-Hello world from Nick.
+Demo:
+https://narwhaldisco.github.io/Chippy8/
 
 Done with the generous help from:
 
@@ -13,6 +14,8 @@ http://devernay.free.fr/hacks/chip8/C8TECH10.HTM#8xy2
 
 to run:
 
-> clone
-> npm install
-> npm run play:terminal
+```
+clone
+npm install
+npm run play:terminal
+```
