@@ -31,4 +31,4 @@ I like to use [http-server](https://www.npmjs.com/package/http-server) to serve 
 Done with the generous help from:
 
 - [Writing an Emulator in JavaScript](https://www.taniarascia.com/writing-an-emulator-in-javascript-chip8/) by Tania Rascia. 
-- (Cowgod's Chip-8 Technical Reference v1.0](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+- [Cowgod's Chip-8 Technical Reference v1.0](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
