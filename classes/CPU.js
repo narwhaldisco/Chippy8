@@ -151,19 +151,32 @@ class CPU {
 
     step()
     {
-        // Fetch, decode and execute this bad boy
-        var opcode = this.fetch();
+        try{
+            // Fetch, decode and execute this bad boy
+            var opcode = this.fetch();
 
-        this.instruction = this.decode(opcode);
+            this.instruction = this.decode(opcode);
 
-        /*if(this.instNum > 1350)
-        {
-            console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + this.instruction.id)
-        }*/
-        
-        this.execute(this.instruction);
+            /*if(this.instNum > 1350)
+            {
+                console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + this.instruction.id)
+            }*/
+            
+            this.execute(this.instruction);
 
-        this.instNum++
+            this.instNum++
+        }
+        catch(err){
+            if (typeof window === 'undefined') {
+                // if not running in browser, just rethrow the error
+                throw err
+            } else {
+                // if in browser, alert the user and halt
+                alert(err)
+            }
+            
+            this.halted = true;
+        }
     }
 
     fetch()

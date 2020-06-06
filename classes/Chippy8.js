@@ -9,7 +9,7 @@ const terminalInterface = new TerminalInterface()
 var cpu = new CPU(terminalInterface);
 
 // Load the rom
-const rom = fs.readFileSync('web/roms/MERLIN');
+const rom = fs.readFileSync('web/roms/INVADERS');
 if (!rom) throw new Error('File not found')
 
 const rombuf = new RomBuffer(rom);
