@@ -8,29 +8,25 @@ function cycle() {
     timer = 0
   }
 
-  cpu.step()
+  if(!cpu.halted)
+  {
+    cpu.step()
+  }
 
-  setTimeout(cycle, 3)
+  setTimeout(cycle, 1)
 }
 
 
 async function loadRom() {
-    //const rom = event.target.value
-    const response = await fetch(`./roms/INVADERS`)
-    const arrayBuffer = await response.arrayBuffer()
-    const uint8View = new Uint8Array(arrayBuffer)
-    const romBuffer = new RomBuffer(uint8View)
-  
-    //console.log(romBuffer);
+  const rom = event.target.value
+  const response = await fetch(`./roms/${rom}`)
+  const arrayBuffer = await response.arrayBuffer()
+  const uint8View = new Uint8Array(arrayBuffer)
+  const romBuffer = new RomBuffer(uint8View)
 
-    //cpu.interface.clearDisplay()
-    //cpu.interface.disableSound()
-    cpu.load(romBuffer)
-    //displayInstructions(rom)
-
-    cycle()
+  cpu.load(romBuffer)
 }
 
-loadRom()
+document.querySelector('select').addEventListener('change', loadRom)
 
-//cycle()
+cycle()

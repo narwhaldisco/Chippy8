@@ -25,6 +25,7 @@ class CPU {
         this.PC = 0x200;
         this.instruction = undefined;
         this.frameBuffer = [];
+        this.halted = true;
     
         // debug stuff
         this.instNum = 0;
@@ -32,6 +33,9 @@ class CPU {
     
     // Load buffer into memory
     load(romBuffer) {
+        // halt while we load
+        this.halted = true;
+
         this.reset()
 
         // 0-80 in memory is reserved for font set
@@ -73,6 +77,9 @@ class CPU {
                 this.frameBuffer[i].push(0)
             }
         }
+
+        // un-halt
+        this.halted = false;
     }
 
     // manually load some code for debug purposes
@@ -120,6 +127,7 @@ class CPU {
         this.SP = -1;
         this.PC = 0x200;
         this.frameBuffer = []
+        this.halted = true
 
         // debug stuff
         this.instNum = 0;

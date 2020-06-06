@@ -10,4 +10,3 @@ const cpu = new CPU(webInterface)
 // browser after bundling.
 global.cpu = cpu
 global.RomBuffer = RomBuffer
-
