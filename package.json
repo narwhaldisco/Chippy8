@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "play:terminal": "node classes/Chippy8.js",
-    "build:web": "browserify browser.js > web/bundle.js"
+    "build:web": "browserify browser.js > web/bundle.js",
+    "build:weblocal": "browserify browser.js > web/bundle.js && http-server -c-1 ./web/"
   },
   "repository": {
     "type": "git",
@@ -19,7 +20,9 @@
   },
   "homepage": "https://github.com/narwhaldisco/Chippy8#readme",
   "dependencies": {
-    "blessed": "^0.1.81",
+    "blessed": "^0.1.81"
+  },
+  "devDependencies": {
     "browserify": "^16.5.1"
   }
 }
