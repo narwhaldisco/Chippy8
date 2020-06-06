@@ -52,8 +52,11 @@ function cycle() {
 
     cpu.step()
 
-    // this loops somehow, I guess it waits 3 milliseconds then calls
-    // cycle again? isn't this recursive and going to create a huge callstacK??
+    if (cpu.drawFlag) {
+        cpu.renderDisplay()
+        cpu.drawFlag = false;
+    }    
+
     setTimeout(cycle, 3);
 }
 
