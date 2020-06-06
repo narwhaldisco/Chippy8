@@ -1,7 +1,9 @@
 # Chippy8
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A experimental chip8 emulator in javascript
+An experimental chip8 emulator in javascript.
+
+Stuck inside during COVID-19 I decided to take a crack at writing an emulator. The [Chip8](https://en.wikipedia.org/wiki/CHIP-8) was never actually a real machine, but a virtual machine so this project is technically an implementation of that virtual machine. Nevertheless it was a good starting point for learning how an emulator is created.
 
 ### [Check out the Web Demo](https://narwhaldisco.github.io/Chippy8/)
 
