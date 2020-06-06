@@ -190,6 +190,14 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xffff) == 0x00ee)
+        {
+            // 00ee - Return
+            var id = "RETURN"
+            var args = ""
+
+            return {id, args}
+        }
         else if((opcode & 0xf000) == 0x1000)
         {
             // 1nnn - Jp addr 
@@ -199,58 +207,13 @@ class CPU {
 
             return {id, args}
         }
-        else if((opcode & 0xf000) == 0x6000)
-        {  
-            // 6xkk - LD Vx, byte
-            // interpreter puts the value kk into register Vx
-            var id = "LD_Vx_B"
-            var Vx = (opcode & 0x0f00) >> 8;
-            var kk = (opcode & 0x00ff);
-
-            var args = {Vx, kk}
-
-            return {id, args}
-        }
-        else if((opcode & 0xf000) == 0xa000)
+        else if((opcode & 0xf000) == 0x2000)
         {
-            // Annn - LD I, addr
-            // Set I = nnn.
-            // The value of reigster I is set to nnn
-            var id = "LD_I_Addr"
-            var args = (opcode & 0x0fff)
+            // 2nnn - CALL
+            // Push PC onto stack, jump to nnn
 
-            return {id, args}
-        }
-        else if((opcode & 0xf000) == 0xd000)
-        {
-            // Dxyn - DRW Vx, Vy nibble
-            var id = "DRW_Vx_Vy_Nibble"
-            var Vx = (opcode & 0x0f00) >> 8
-            var Vy = (opcode & 0x00f0) >> 4
-            var n  = (opcode & 0x000f)
-
-            var args = {Vx, Vy, n}
-
-            return {id, args}
-        }
-        else if((opcode & 0xf000) == 0x7000)
-        {
-            // Set Vx = Vx + kk
-            // Adds the value kk to the value of register Vx, then stores the result in Vx
-            var id = "ADD_Vx_B"
-            var Vx = (opcode & 0x0f00) >> 8;
-            var kk = (opcode & 0x00ff);
-
-            var args = {Vx, kk}
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf01e)
-        {
-            // Fx1E - ADD I, Vx
-            // Set I = I + Vx
-            var id = "ADD_I_Vx"
-            var args = (opcode & 0x0f00) >> 8
+            var id = "CALL"
+            var args = opcode & 0x0fff;
 
             return {id, args}
         }
@@ -281,117 +244,61 @@ class CPU {
 
             return {id, args}
         }
-        else if((opcode & 0xf000) == 0x2000)
+        else if((opcode & 0xf00f) == 0x5000)
         {
-            // 2nnn - CALL
-            // Push PC onto stack, jump to nnn
+            // 5xy0 - SE Vx, Vy
+            // Skip next instruction if Vx = Vy
+            var id = "SE_Vx_Vy"
 
-            var id = "CALL"
-            var args = opcode & 0x0fff;
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf033)
-        {
-            // fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
-
-            var id = "BCD_Vx"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf065)
-        {
-            // fx64 - load V0 through Vx with memory starting at I
-
-            var id = 'LD_V0-Vx_MEM(I)'
-            var args = (opcode & 0x0f00) >> 8
-            
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf029)
-        {
-            // fx29 - Loads I with the location of hex digit x from the FONT_SET thing
-            var id = "LD_I_FONT"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xffff) == 0x00ee)
-        {
-            // 00ee - Return
-            var id = "RETURN"
-            var args = ""
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf015)
-        {
-            // fx15 - Load DT with Vx
-            var id = "LD_DT_Vx"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf018)
-        {
-            // fx18 - Load ST with Vx
-            var id = "LD_ST_Vx"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf007)
-        {
-            // fx07 - Load Vx with DT
-            var id = "LD_Vx_DT"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xf00A)
-        {
-            // fx0A - All execution stops until a key is pressed, Load Vx with Key
-            var id = "LD_Vx_KEY"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xf000) == 0xc000)
-        {
-            // cxkk - Load Vx with rand AND kk
-            var id = "LD_Vx_RAND_AND_B"
-            
             var Vx = (opcode & 0x0f00) >> 8
-            var kk = opcode & 0x00ff
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+
+        }
+        else if((opcode & 0xf000) == 0x6000)
+        {  
+            // 6xkk - LD Vx, byte
+            // interpreter puts the value kk into register Vx
+            var id = "LD_Vx_B"
+            var Vx = (opcode & 0x0f00) >> 8;
+            var kk = (opcode & 0x00ff);
 
             var args = {Vx, kk}
 
             return {id, args}
         }
-        else if((opcode & 0xf0ff) == 0xe09e)
+        else if((opcode & 0xf000) == 0x7000)
         {
-            // exa1 - Skip next instruction if key with the value of Vx is pressed
+            // Set Vx = Vx + kk
+            // Adds the value kk to the value of register Vx, then stores the result in Vx
+            var id = "ADD_Vx_B"
+            var Vx = (opcode & 0x0f00) >> 8;
+            var kk = (opcode & 0x00ff);
 
-            var id = "SKP_Vx"
-            var args = (opcode & 0x0f00) >> 8
-
-            return {id, args}
-        }
-        else if((opcode & 0xf0ff) == 0xe0a1)
-        {
-            // exa1 - Skip next instruction if key with the value of Vx is NOT pressed
-
-            var id = "SKNP_Vx"
-            var args = (opcode & 0x0f00) >> 8
+            var args = {Vx, kk}
 
             return {id, args}
         }
         else if((opcode & 0xf00f) == 0x8000)
         {
             // 8xy0 - Set Vx = Vy.
-
             var id = "LD_Vx_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8001)
+        {
+            // 8xy1 - Set Vx = Vx OR Vy.
+
+            var id = "Vx_OR_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
             var Vy = (opcode & 0x00f0) >> 4
@@ -426,11 +333,46 @@ class CPU {
 
             return {id, args}
         }
+        else if((opcode & 0xf00f) == 0x8004)
+        {
+            // 8xy4 - Set Vx = Vx + Vy, set VF = carry
+
+            var id = "ADD_Vx_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy}
+
+            return {id, args}
+        }
         else if((opcode & 0xf00f) == 0x8005)
         {
             // 8xy5 - Set Vx = Vx - Vy, set VF = NOT borrow.
 
             var id = "SUB_Vx_Vy"
+
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+
+            var args = {Vx, Vy};
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8006)
+        {
+            // 8xy6 - Set Vx = Vx SHR 1.
+
+            var id = "SHR_Vx"
+            var args = (opcode & 0x0f00) >> 8;
+
+            return {id, args}
+        }
+        else if((opcode & 0xf00f) == 0x8007)
+        {
+            // 8xy7 - Set Vx = Vy - Vx, set VF = NOT borrow.
+
+            var id = "SUBN_Vx_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
             var Vy = (opcode & 0x00f0) >> 4
@@ -451,11 +393,10 @@ class CPU {
 
             return {id, args}
         }
-        else if((opcode & 0xf00f) == 0x8004)
+        else if((opcode & 0xf00f) == 0x9000)
         {
-            // 8xy4 - Set Vx = Vx + Vy, set VF = carry
-
-            var id = "ADD_Vx_Vy"
+            // 9xy0 - Skip next instruction if Vx != Vy.
+            var id = "SK_Vx_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
             var Vy = (opcode & 0x00f0) >> 4
@@ -464,13 +405,130 @@ class CPU {
 
             return {id, args}
         }
-        else if((opcode & 0xf00f) == 0x8006)
+        else if((opcode & 0xf000) == 0xa000)
         {
-            // 8xy6 - Set Vx = Vx SHR 1.
+            // Annn - LD I, addr
+            // Set I = nnn.
+            // The value of reigster I is set to nnn
+            var id = "LD_I_Addr"
+            var args = (opcode & 0x0fff)
 
-            var id = "SHR_Vx"
-            var args = (opcode & 0x0f00) >> 8;
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0xc000)
+        {
+            // cxkk - Load Vx with rand AND kk
+            var id = "LD_Vx_RAND_AND_B"
+            
+            var Vx = (opcode & 0x0f00) >> 8
+            var kk = opcode & 0x00ff
 
+            var args = {Vx, kk}
+
+            return {id, args}
+        }
+        else if((opcode & 0xf000) == 0xd000)
+        {
+            // Dxyn - DRW Vx, Vy nibble
+            var id = "DRW_Vx_Vy_Nibble"
+            var Vx = (opcode & 0x0f00) >> 8
+            var Vy = (opcode & 0x00f0) >> 4
+            var n  = (opcode & 0x000f)
+
+            var args = {Vx, Vy, n}
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xe0a1)
+        {
+            // exa1 - Skip next instruction if key with the value of Vx is NOT pressed
+
+            var id = "SKNP_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xe09e)
+        {
+            // exa1 - Skip next instruction if key with the value of Vx is pressed
+
+            var id = "SKP_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf007)
+        {
+            // fx07 - Load Vx with DT
+            var id = "LD_Vx_DT"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf00A)
+        {
+            // fx0A - All execution stops until a key is pressed, Load Vx with Key
+            var id = "LD_Vx_KEY"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf015)
+        {
+            // fx15 - Load DT with Vx
+            var id = "LD_DT_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf01e)
+        {
+            // Fx1E - ADD I, Vx
+            // Set I = I + Vx
+            var id = "ADD_I_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf018)
+        {
+            // fx18 - Load ST with Vx
+            var id = "LD_ST_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf029)
+        {
+            // fx29 - Loads I with the location of hex digit x from the FONT_SET thing
+            var id = "LD_I_FONT"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf033)
+        {
+            // fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
+
+            var id = "BCD_Vx"
+            var args = (opcode & 0x0f00) >> 8
+
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf055)
+        {
+            // fx64 - store into memory V0 through Vx starting at memory[I]
+            var id = 'STORE_MEM(I)_V0-Vx'
+            var args = (opcode & 0x0f00) >> 8
+            
+            return {id, args}
+        }
+        else if((opcode & 0xf0ff) == 0xf065)
+        {
+            // fx64 - load V0 through Vx with memory starting at I
+            var id = 'LD_V0-Vx_MEM(I)'
+            var args = (opcode & 0x0f00) >> 8
+            
             return {id, args}
         }
         else
@@ -707,6 +765,22 @@ class CPU {
                 this.advancePC()
 
                 break;
+            case 'STORE_MEM(I)_V0-Vx':
+                    // Store registers V0 through Vx in memory starting at location I.
+                    // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+    
+                    var endReg = args;
+    
+                    this.checkRegister(endReg);
+    
+                    for(var i = 0; i <= endReg; i++)
+                    {
+                        this.memory[this.I + i] = this.registers[i];
+                    }
+    
+                    this.advancePC()
+    
+                    break;
             case 'LD_V0-Vx_MEM(I)':
                 // Read registers V0 through Vx from memory starting at location I.
                 // The interpreter reads values from memory starting at location I into registers V0 through Vx.
@@ -870,6 +944,21 @@ class CPU {
                 }
 
                 break;
+            case 'Vx_OR_Vy':
+                // Set Vx = Vx OR Vy.
+                // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx.
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+                
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+    
+                this.registers[Vx] = (this.registers[Vx] | this.registers[Vy])
+
+                this.advancePC()
+
+                break;    
             case 'Vx_AND_Vy':
                 // Set Vx = Vx AND Vy.
                 // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
@@ -993,6 +1082,32 @@ class CPU {
                 this.advancePC()
             
                 break;
+            case 'SUBN_Vx_Vy':
+                // Set Vx = Vy - Vx, set VF = NOT borrow.
+                // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+
+                var Vx = args.Vx
+                var Vy = args.Vy
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                // Check if we need to set flag
+                if(this.registers[Vy] > this.registers[Vx])
+                {
+                    this.registers[0xf] = 1
+                }
+                else
+                {
+                    this.registers[0xf] = 0
+                }
+
+                // Then do the subtraction!
+                this.registers[Vx] = this.registers[Vy] - this.registers[Vx]
+
+                this.advancePC()
+            
+                break;
             case 'LD_Vx_KEY':
                 var reg = args;
 
@@ -1009,6 +1124,48 @@ class CPU {
                 this.CPUInterface.resetKeys();
 
                 this.advancePC();
+
+                break;
+            case 'SK_Vx_Vy':
+                // Skip next instruction if Vx != Vy.
+                // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
+                                
+                var Vx = args.Vx;
+                var Vy = args.Vy;
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                // if Vx != Vy, skip the next instruction
+                if(this.registers[Vx] != this.registers[Vy])
+                {
+                    this.PC = this.PC + 4
+                }
+                else
+                {
+                    this.advancePC()
+                }
+
+                break;
+            case 'SE_Vx_Vy':
+                // Skip next instruction if Vx = Vy.
+                // The values of Vx and Vy are compared, and if they are equal, the program counter is increased by 2.
+                                
+                var Vx = args.Vx;
+                var Vy = args.Vy;
+
+                this.checkRegister(Vx)
+                this.checkRegister(Vy)
+
+                // if Vx = Vy, skip the next instruction
+                if(this.registers[Vx] == this.registers[Vy])
+                {
+                    this.PC = this.PC + 4
+                }
+                else
+                {
+                    this.advancePC()
+                }
 
                 break;
             default:
