@@ -10,10 +10,17 @@ function cycle() {
 
   if(!cpu.halted)
   {
-    cpu.step()
+    for (var i = 0; i < 7; i++) {
+      cpu.step()
+    }
   }
 
-  setTimeout(cycle, 1)
+  if (cpu.drawFlag) {
+    cpu.renderDisplay()
+    cpu.drawFlag = false;
+  }
+
+  requestAnimationFrame(cycle);
 }
 
 
@@ -29,4 +36,4 @@ async function loadRom() {
 
 document.querySelector('select').addEventListener('change', loadRom)
 
-cycle()
+requestAnimationFrame(cycle);

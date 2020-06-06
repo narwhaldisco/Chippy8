@@ -25,6 +25,7 @@ class CPU {
         this.PC = 0x200;
         this.instruction = undefined;
         this.frameBuffer = [];
+        this.drawFlag = false;
         this.halted = true;
     
         // debug stuff
@@ -78,12 +79,16 @@ class CPU {
             }
         }
 
+        // Render the empty frame. Just to erase the previous game
+        // if we're loading roms multiple times.
+        this.renderDisplay()
+
         // un-halt
         this.halted = false;
     }
 
     // manually load some code for debug purposes
-    debug_load()
+    /*debug_load()
     {
         this.reset()
 
@@ -113,7 +118,7 @@ class CPU {
                 this.frameBuffer[i].push(0)
             }
         }
-    }
+    }*/
 
     reset()
     {
@@ -127,6 +132,7 @@ class CPU {
         this.SP = -1;
         this.PC = 0x200;
         this.frameBuffer = []
+        this.drawFlag = false;
         this.halted = true
 
         // debug stuff
@@ -135,8 +141,6 @@ class CPU {
 
     tick()
     {
-        //console.log("I have ticked DT: " + this.DT)
-
         // Drecrement the timers
         if(this.DT > 0)
         {
@@ -156,11 +160,6 @@ class CPU {
             var opcode = this.fetch();
 
             this.instruction = this.decode(opcode);
-
-            /*if(this.instNum > 1350)
-            {
-                console.log("instNum: " + this.instNum + " decoded " + opcode.toString(16) + " to " + this.instruction.id)
-            }*/
             
             this.execute(this.instruction);
 
@@ -171,7 +170,7 @@ class CPU {
                 // if not running in browser, just rethrow the error
                 throw err
             } else {
-                // if in browser, alert the user and halt
+                // if in browser, alert the user
                 alert(err)
             }
             
@@ -224,7 +223,6 @@ class CPU {
         {
             // 2nnn - CALL
             // Push PC onto stack, jump to nnn
-
             var id = "CALL"
             var args = opcode & 0x0fff;
 
@@ -247,7 +245,6 @@ class CPU {
         {
             // 4xkk - SNE Vx, byte
             // Skip next instruction if Vx != kk
-
             var id = "SNE_Vx_B"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -285,7 +282,7 @@ class CPU {
         }
         else if((opcode & 0xf000) == 0x7000)
         {
-            // Set Vx = Vx + kk
+            // 7xkk - Set Vx = Vx + kk
             // Adds the value kk to the value of register Vx, then stores the result in Vx
             var id = "ADD_Vx_B"
             var Vx = (opcode & 0x0f00) >> 8;
@@ -310,7 +307,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8001)
         {
             // 8xy1 - Set Vx = Vx OR Vy.
-
             var id = "Vx_OR_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -323,7 +319,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8002)
         {
             // 8xy2 - Set Vx = Vx AND Vy.
-
             var id = "Vx_AND_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -336,7 +331,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8003)
         {
             // 8xy3 - Set Vx = Vx XOR Vy.
-
             var id = "Vx_XOR_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -349,7 +343,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8004)
         {
             // 8xy4 - Set Vx = Vx + Vy, set VF = carry
-
             var id = "ADD_Vx_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -362,7 +355,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8005)
         {
             // 8xy5 - Set Vx = Vx - Vy, set VF = NOT borrow.
-
             var id = "SUB_Vx_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -375,7 +367,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8006)
         {
             // 8xy6 - Set Vx = Vx SHR 1.
-
             var id = "SHR_Vx"
             var args = (opcode & 0x0f00) >> 8;
 
@@ -384,7 +375,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x8007)
         {
             // 8xy7 - Set Vx = Vy - Vx, set VF = NOT borrow.
-
             var id = "SUBN_Vx_Vy"
 
             var Vx = (opcode & 0x0f00) >> 8
@@ -397,10 +387,6 @@ class CPU {
         else if((opcode & 0xf00f) == 0x800E)
         {
             // 8xyE - Set Vx = Vx SHL 1.
-            // Why does this one seem to have a bunch of unused operands???
-            // Apparently there is confusion in the community lol... most implementations and code just treat
-            // this opcode as I have it implemented here.
-
             var id = "SHL_Vx"
             var args = (opcode & 0x0f00) >> 8;
 
@@ -430,7 +416,7 @@ class CPU {
         }
         else if((opcode & 0xf000) == 0xc000)
         {
-            // cxkk - Load Vx with rand AND kk
+            // Cxkk - Load Vx with rand AND kk
             var id = "LD_Vx_RAND_AND_B"
             
             var Vx = (opcode & 0x0f00) >> 8
@@ -454,8 +440,7 @@ class CPU {
         }
         else if((opcode & 0xf0ff) == 0xe0a1)
         {
-            // exa1 - Skip next instruction if key with the value of Vx is NOT pressed
-
+            // ExA1 - Skip next instruction if key with the value of Vx is NOT pressed
             var id = "SKNP_Vx"
             var args = (opcode & 0x0f00) >> 8
 
@@ -463,8 +448,7 @@ class CPU {
         }
         else if((opcode & 0xf0ff) == 0xe09e)
         {
-            // exa1 - Skip next instruction if key with the value of Vx is pressed
-
+            // Ex9E - Skip next instruction if key with the value of Vx is pressed
             var id = "SKP_Vx"
             var args = (opcode & 0x0f00) >> 8
 
@@ -522,7 +506,6 @@ class CPU {
         else if((opcode & 0xf0ff) == 0xf033)
         {
             // fx33 - Store BCD representation of Vx in memory locations I, I+1, and I+2.
-
             var id = "BCD_Vx"
             var args = (opcode & 0x0f00) >> 8
 
@@ -589,8 +572,6 @@ class CPU {
 
                 this.registers[reg] = kk
 
-                //console.log('reg: ' + reg + ' kk: ' + kk)
-
                 this.advancePC()
 
                 break;
@@ -609,7 +590,6 @@ class CPU {
                 // These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). Sprites are XORed onto the existing screen. 
                 // If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of 
                 // it is outside the coordinates of the display, it wraps around to the opposite side of the screen.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
 
@@ -630,9 +610,6 @@ class CPU {
                 // for each row
                 for(var i = 0; i < n; i++)
                 {
-                    //console.log('I: ' + this.I)
-                    //console.log(this.memory[this.I+i].toString(2))
-
                     // for each col in this row
                     // go bit by bit and set the framebuffer
                     for(var j = 0; j < 8; j++)
@@ -641,8 +618,6 @@ class CPU {
                         var row = ((startx+j) % 64)
 
                         var newBit = ((this.memory[this.I+i] << j) & 0x80)
-
-                        //console.log('col: ' + col + ' row: ' + row)
 
                         // If we are about to erase a pixel, remember so we can set Vf
                         if(this.frameBuffer[col][row] & newBit)
@@ -664,8 +639,9 @@ class CPU {
                     this.registers[0xf] = 0
                 }
 
-                this.renderDisplay()
-
+                // Set draw flag, parent will decide when to draw
+                this.drawFlag = true;
+                
                 this.PC = this.PC + 2
 
                 break;
@@ -690,15 +666,12 @@ class CPU {
 
                 this.I += this.registers[reg];
 
-                //console.log(this.I)
-
                 this.advancePC()
 
                 break;
             case 'SE_Vx_B':
                 // 3xkk - SE Vx, byte
                 // Skip next instruction if Vx = kk.
-
                 var reg = args.Vx
                 var kk  = args.kk
 
@@ -720,13 +693,10 @@ class CPU {
             case 'SNE_Vx_B':
                 // 4xkk - SNE Vx, byte
                 // Skip next instruction if Vx != kk.
-
                 var reg = args.Vx
                 var kk  = args.kk
 
                 this.checkRegister(reg)
-
-                //console.log("SNE_Vx_B Vx: " + this.registers[reg] + " B: " + kk)
 
                 // advance two instructions if the register does not match the byte
                 if(this.registers[reg] != kk)
@@ -759,8 +729,6 @@ class CPU {
 
                 var value = this.registers[args]
 
-                //console.log("reg is: " + args + " value there is: " + value)
-
                 // POSSIBLE BUG: I don't think the Math.floor solution works for negative numbers.
                 // But in that situation, what even is the BCD of a negative number???
                 var ones = value % 10;
@@ -769,8 +737,6 @@ class CPU {
                 value = Math.floor(value/10);
                 var hundreds = value % 10;
             
-                //console.log("ones: " + ones + " tens: " + tens + " hundreds: " + hundreds)
-
                 this.memory[this.I] = hundreds;
                 this.memory[this.I+1] = tens;
                 this.memory[this.I+2] = ones;
@@ -781,7 +747,6 @@ class CPU {
             case 'STORE_MEM(I)_V0-Vx':
                     // Store registers V0 through Vx in memory starting at location I.
                     // The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
-    
                     var endReg = args;
     
                     this.checkRegister(endReg);
@@ -797,7 +762,6 @@ class CPU {
             case 'LD_V0-Vx_MEM(I)':
                 // Read registers V0 through Vx from memory starting at location I.
                 // The interpreter reads values from memory starting at location I into registers V0 through Vx.
-
                 var endReg = args;
 
                 this.checkRegister(endReg);
@@ -813,7 +777,6 @@ class CPU {
             case 'LD_I_FONT':
                 // Set I = location of sprite for digit Vx.
                 // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. 
-
                 var reg = args;
                 this.checkRegister(reg)
 
@@ -833,7 +796,6 @@ class CPU {
             case 'RETURN':
                 // Return from a subroutine.
                 // The interpreter sets the program counter to the address at the top of the stack, then subtracts 1 from the stack pointer.
-
                 this.PC = this.stack[this.SP];
 
                 this.SP = this.SP - 1;
@@ -844,7 +806,6 @@ class CPU {
             case 'LD_Vx_Vy':
                 // Set Vx = Vy.
                 // Stores the value of register Vy in register Vx.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
 
@@ -859,7 +820,6 @@ class CPU {
             case 'LD_DT_Vx':
                 // Set delay timer = Vx.
                 // DT is set equal to the value of Vx.
-
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -872,7 +832,6 @@ class CPU {
             case 'LD_ST_Vx':
                 // Set sound delay timer = Vx.
                 // ST is set equal to the value of Vx.
-
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -885,7 +844,6 @@ class CPU {
             case 'LD_Vx_DT':
                 // Set Vx = delay timer value.
                 // The value of DT is placed into Vx.
-
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -899,7 +857,6 @@ class CPU {
                 // Set Vx = random byte AND kk.
                 // The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. 
                 // The results are stored in Vx.
-
                 var reg = args.Vx;
                 var kk = args.kk;
 
@@ -907,12 +864,7 @@ class CPU {
 
                 var rand = Math.floor((Math.random() * 255));
 
-                // certified random
-                //var rand = 110;
-
                 var val = (rand & kk)
-
-                //console.log("rand: " + rand + " val: " + val)
 
                 this.registers[reg] = val
 
@@ -922,7 +874,6 @@ class CPU {
             case 'SKNP_Vx':
                 // Skip next instruction if key with the value of Vx is NOT pressed.
                 // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
-                
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -941,7 +892,6 @@ class CPU {
             case 'SKP_Vx':
                 // Skip next instruction if key with the value of Vx is NOT pressed.
                 // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
-                
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -960,7 +910,6 @@ class CPU {
             case 'Vx_OR_Vy':
                 // Set Vx = Vx OR Vy.
                 // Performs a bitwise OR on the values of Vx and Vy, then stores the result in Vx.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
                 
@@ -975,14 +924,11 @@ class CPU {
             case 'Vx_AND_Vy':
                 // Set Vx = Vx AND Vy.
                 // Performs a bitwise AND on the values of Vx and Vy, then stores the result in Vx.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
                 
                 this.checkRegister(Vx)
                 this.checkRegister(Vy)
-
-                //console.log("Vx_AND_Vy Vx: " + this.registers[Vx].toString(16) + " Vy: " + this.registers[Vy].toString(16))
 
                 this.registers[Vx] = (this.registers[Vx] & this.registers[Vy])
 
@@ -992,14 +938,11 @@ class CPU {
             case 'Vx_XOR_Vy':
                 // Set Vx = Vx XOR Vy.
                 // Performs a bitwise XOR on the values of Vx and Vy, then stores the result in Vx.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
                 
                 this.checkRegister(Vx)
                 this.checkRegister(Vy)
-
-                //console.log("Vx_XOR_Vy Vx: " + this.registers[Vx].toString(16) + " Vy: " + this.registers[Vy].toString(16))
 
                 this.registers[Vx] = (this.registers[Vx] ^ this.registers[Vy])
 
@@ -1009,7 +952,6 @@ class CPU {
             case 'SHL_Vx':
                 // Set Vx = Vx SHL 1.
                 // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
-
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -1026,7 +968,6 @@ class CPU {
             case 'SHR_Vx':
                 // Set Vx = Vx SHR 1.
                 // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is divided by 2.
-
                 var reg = args;
 
                 this.checkRegister(reg)
@@ -1044,7 +985,6 @@ class CPU {
 
                 // Set Vx = Vx + Vy, set VF = carry.
                 // The values of Vx and Vy are added together. If the result is greater than 8 bits (i.e., > 255,) VF is set to 1, otherwise 0. 
-
                 var Vx = args.Vx
                 var Vy = args.Vy
 
@@ -1052,8 +992,6 @@ class CPU {
                 this.checkRegister(Vy)
 
                 var sum = this.registers[Vx] + this.registers[Vy]
-
-                //console.log("ADD_Vx_Vy sum: " + sum)
 
                 this.registers[Vx] = sum
 
@@ -1072,7 +1010,6 @@ class CPU {
             case 'SUB_Vx_Vy':
                 // Set Vx = Vx - Vy, set VF = NOT borrow.
                 // If Vx > Vy, then VF is set to 1, otherwise 0. Then Vy is subtracted from Vx, and the results stored in Vx.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
 
@@ -1098,7 +1035,6 @@ class CPU {
             case 'SUBN_Vx_Vy':
                 // Set Vx = Vy - Vx, set VF = NOT borrow.
                 // If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
-
                 var Vx = args.Vx
                 var Vy = args.Vy
 
@@ -1129,7 +1065,7 @@ class CPU {
                 if(this.CPUInterface.getKeyPressed() == undefined)
                 {
                     // just let the interpreter loop on this instruction, don't advance PC.
-                    return;
+                    break;
                 }
 
                 this.registers[reg] = this.CPUInterface.getKeyPressed();
@@ -1141,8 +1077,7 @@ class CPU {
                 break;
             case 'SK_Vx_Vy':
                 // Skip next instruction if Vx != Vy.
-                // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2.
-                                
+                // The values of Vx and Vy are compared, and if they are not equal, the program counter is increased by 2. 
                 var Vx = args.Vx;
                 var Vy = args.Vy;
 
@@ -1163,7 +1098,6 @@ class CPU {
             case 'SE_Vx_Vy':
                 // Skip next instruction if Vx = Vy.
                 // The values of Vx and Vy are compared, and if they are equal, the program counter is increased by 2.
-                                
                 var Vx = args.Vx;
                 var Vy = args.Vy;
 
